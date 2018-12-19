@@ -1,6 +1,6 @@
 # Get the git version
 execute_process(
-  COMMAND git describe
+  COMMAND git describe --always
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   OUTPUT_VARIABLE GIT_DESCRIBE
   OUTPUT_STRIP_TRAILING_WHITESPACE
