@@ -1,0 +1,170 @@
+#pragma once
+
+#include "chrono.h"
+#include "macros.h"
+#include "movingexceptions.h"
+
+#include <cassert>
+#include <vector>
+
+namespace uiiit {
+namespace support {
+
+/**
+ * A moving window of values with an associated timestamp for clean-up.
+ *
+ * TYPE must be default-constructible and copyable.
+ */
+template <class TYPE>
+class MovingWnd
+{
+  MOVEONLY(MovingWnd);
+
+ public:
+  /**
+   * Create a moving window with no values stored.
+   *
+   * \throw ZeroWindow is aSize == 0.
+   */
+  explicit MovingWnd(const size_t aSize);
+
+  virtual ~MovingWnd();
+
+  //! Restore the structure to the initial value (empty).
+  void clear() noexcept;
+
+  //! \return true if the window is empty.
+  bool empty() const noexcept;
+
+  //! \return true if adding a new value would remove an existing one.
+  bool full() const noexcept;
+
+  //! \return the number of elements in the window.
+  size_t size() const noexcept;
+
+  //! Add a new value.
+  void add(const TYPE aValue) noexcept;
+
+  //! Pop the oldest value or throw EmptyWindow is there are no values.
+  TYPE pop();
+
+  //! \return a copy of the values.
+  std::vector<TYPE> values() const noexcept;
+
+  /**
+   * Remove all values older than the specified time, in seconds.
+   *
+   * \return true if at least only value was removed.
+   */
+  bool purge(const double aInterval);
+
+ private:
+  support::Chrono     theChrono;
+  std::vector<TYPE>   theValues;
+  std::vector<double> theTimestamps;
+  size_t              theCur;
+  size_t              theTot;
+};
+
+template <class TYPE>
+MovingWnd<TYPE>::MovingWnd(const size_t aSize)
+    : theChrono(true)
+    , theValues(aSize)
+    , theTimestamps(aSize)
+    , theCur(0)
+    , theTot(0) {
+  if (aSize == 0) {
+    throw ZeroWindow();
+  }
+}
+
+template <class TYPE>
+MovingWnd<TYPE>::~MovingWnd() {
+}
+
+template <class TYPE>
+void MovingWnd<TYPE>::clear() noexcept {
+  theTot = 0;
+}
+
+template <class TYPE>
+bool MovingWnd<TYPE>::empty() const noexcept {
+  return theTot == 0;
+}
+
+template <class TYPE>
+bool MovingWnd<TYPE>::full() const noexcept {
+  return theTot == theValues.size();
+}
+
+template <class TYPE>
+size_t MovingWnd<TYPE>::size() const noexcept {
+  return theTot;
+}
+
+template <class TYPE>
+void MovingWnd<TYPE>::add(const TYPE aValue) noexcept {
+  const auto N = theValues.size();
+  assert(theValues.size() == theTimestamps.size());
+  assert(theTot <= N);
+  if (theTot < N) {
+    theTot++;
+  }
+  theValues[theCur]     = aValue;
+  theTimestamps[theCur] = theChrono.time();
+  theCur                = (theCur + 1) % N;
+}
+
+template <class TYPE>
+TYPE MovingWnd<TYPE>::pop() {
+  if (theTot == 0) {
+    throw EmptyWindow();
+  }
+
+  const auto   N     = theValues.size();
+  const size_t myPos = (theCur + N - theTot) % N;
+  theTot--;
+  return theValues[myPos];
+}
+
+template <class TYPE>
+std::vector<TYPE> MovingWnd<TYPE>::values() const noexcept {
+  const auto        N = theValues.size();
+  std::vector<TYPE> ret(theTot);
+
+  size_t myPos = (theCur + N - theTot) % N;
+  for (size_t i = 0; i < theTot; i++) {
+    ret[i] = theValues[myPos];
+    myPos++;
+    if (myPos == N) {
+      myPos = 0;
+    }
+  }
+
+  return ret;
+}
+
+template <class TYPE>
+bool MovingWnd<TYPE>::purge(const double aInterval) {
+  const auto N         = theValues.size();
+  const auto myHorizon = theChrono.time() - aInterval;
+
+  const auto myInitialTot = theTot;
+  size_t     myPos        = (theCur + N - theTot) % N;
+  for (size_t i = 0; i < theTot; i++) {
+    if (theTimestamps[myPos] <= myHorizon) {
+      theTot--;
+    } else {
+      break;
+    }
+    myPos++;
+    if (myPos == N) {
+      myPos = 0;
+    }
+  }
+
+  return theTot != myInitialTot;
+}
+
+} // namespace support
+} // namespace uiiit
