@@ -25,7 +25,7 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 
 include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
 
-add_library(uiiitsupporttest SHARED
+add_library(testlib SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/testconf.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testfit.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testhistogram.cpp
@@ -45,16 +45,16 @@ add_library(uiiitsupporttest SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/testwait.cpp
 )
 
-target_link_libraries(uiiitsupporttest
+target_link_libraries(testlib
   uiiitsupport
   gtest
   ${Boost_LIBRARIES}
 )
 
-add_executable(uiiitsupporttestmain
+add_executable(testmain
   ${CMAKE_CURRENT_SOURCE_DIR}/testmain.cpp
 )
 
-target_link_libraries(uiiitsupporttestmain
-  uiiitsupporttest
+target_link_libraries(testmain
+  testlib
 )
