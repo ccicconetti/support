@@ -28,7 +28,7 @@ SOFTWARE.
 */
 
 #include "Support/movingwnd.h"
-#include "macros.h"
+#include "Support/testutils.h"
 
 #include "gtest/gtest.h"
 
@@ -40,9 +40,7 @@ namespace support {
 
 struct TestMovingWnd : public ::testing::Test {};
 
-TEST_F(TestMovingWnd, test_ctor) {
-  ASSERT_NO_THROW(MovingWnd<int>(1));
-}
+TEST_F(TestMovingWnd, test_ctor) { ASSERT_NO_THROW(MovingWnd<int>(1)); }
 
 TEST_F(TestMovingWnd, test_exceptions) {
   ASSERT_THROW(MovingWnd<int>(0), ZeroWindow);

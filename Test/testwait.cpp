@@ -31,7 +31,7 @@ SOFTWARE.
 
 #include "Support/chrono.h"
 #include "Support/wait.h"
-#include "Test/macros.h"
+#include "Support/testutils.h"
 
 namespace uiiit {
 namespace support {
