@@ -1,8 +1,8 @@
 /*
  ___ ___ __     __ ____________
-|   |   |  |   |__|__|__   ___/   Ubiquitout Internet @ IIT-CNR
-|   |   |  |  /__/  /  /  /    C++ edge computing libraries and tools
-|   |   |  |/__/  /   /  /  https://bitbucket.org/ccicconetti/edge_computing/
+|   |   |  |   |__|__|__   ___/  Ubiquitout Internet @ IIT-CNR
+|   |   |  |  /__/  /  /  /      C++ support library
+|   |   |  |/__/  /   /  /       https://bitbucket.org/ccicconetti/support/
 |_______|__|__/__/   /__/
 
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
