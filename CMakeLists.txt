@@ -5,12 +5,17 @@ cmake_minimum_required(VERSION 3.2)
 
 set (CMAKE_CXX_STANDARD 14) # c++14
 
+# Cmake find modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
 if(APPLE)
   find_package(glog REQUIRED)
   set(GLOG glog::glog)
 else()
   set(GLOG glog)
 endif()
+find_package(Protobuf REQUIRED)
+find_package(GRPC REQUIRED)
 find_package(Boost
   REQUIRED
   COMPONENTS program_options filesystem system chrono thread
@@ -28,11 +33,14 @@ MESSAGE("COMPILER:                 ${CMAKE_CXX_COMPILER}")
 MESSAGE("COMPILER FLAGS DEBUG:     ${CMAKE_CXX_FLAGS_DEBUG}")
 MESSAGE("COMPILER FLAGS RELEASE:   ${CMAKE_CXX_FLAGS_RELEASE}")
 MESSAGE("CMAKE_BUILD_TYPE:         ${CMAKE_BUILD_TYPE}")
+MESSAGE("Protobuf Library:         ${PROTOBUF_LIBRARY}")
+MESSAGE("Protobuf Includes Path:   ${PROTOBUF_INCLUDE_DIR}")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_subdirectory(Support)
+add_subdirectory(RpcSupport)
 if (${CMAKE_BUILD_TYPE} STREQUAL "debug")
   add_subdirectory(Test)
 endif()
