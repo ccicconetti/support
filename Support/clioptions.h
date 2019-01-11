@@ -76,5 +76,14 @@ class CliOptions
   boost::program_options::options_description& theDesc;
 };
 
+//! Simple CliOptions instance that cannot be derived further.
+class TrivialOptions final : public CliOptions
+{
+ public:
+  explicit TrivialOptions(int                                          argc,
+                          char**                                       argv,
+                          boost::program_options::options_description& aDesc);
+};
+
 } // namespace support
 } // namespace uiiit

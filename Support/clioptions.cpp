@@ -72,5 +72,12 @@ const boost::program_options::variables_map& CliOptions::varMap() noexcept {
   return theVarMap;
 }
 
+TrivialOptions::TrivialOptions(int                                          argc,
+                          char**                                       argv,
+                          boost::program_options::options_description& aDesc)
+      : CliOptions(argc, argv, aDesc) {
+        parse();
+      }
+
 } // namespace support
 } // namespace uiiit
