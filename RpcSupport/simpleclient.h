@@ -27,31 +27,44 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "gtest/gtest.h"
+#pragma once
 
-#include "Support/chrono.h"
-#include "Support/wait.h"
-#include "Support/testutils.h"
+#include "Support/macros.h"
+
+#include <memory>
+#include <string>
+
+#include <grpc++/grpc++.h>
 
 namespace uiiit {
-namespace support {
+namespace rpc {
 
-struct TestWait : public ::testing::Test {};
+/*
+ * Base class for a synchronous gRPC client.
+ */
+template <class SERVER>
+class SimpleClient
+{
+ public:
+  NONCOPYABLE_NONMOVABLE(SimpleClient);
 
-TEST_F(TestWait, test_waitfor) {
-  ASSERT_TRUE(support::waitFor<int>([]() { return 7; }, 7, 0.1));
+  explicit SimpleClient(const std::string& aServerEndpoint)
+      : theChannel(grpc::CreateChannel(aServerEndpoint,
+                                       grpc::InsecureChannelCredentials()))
+      , theStub(SERVER::NewStub(theChannel))
+      , theServerEndpoint(aServerEndpoint) {
+  }
 
-  Chrono myChrono(true);
-  ASSERT_FALSE(support::waitFor<int>([]() { return 8; }, 7, 0.1));
-  const auto myElapsed = myChrono.stop();
-  ASSERT_GT(myElapsed, 0.1);
+  virtual ~SimpleClient() {
+  }
 
-  int myCounter = 0;
-  ASSERT_TRUE((
-      support::waitFor<int>([&myCounter]() { return myCounter++; }, 100, 1.0)));
+ private:
+  std::shared_ptr<grpc::Channel> theChannel;
 
-  WAIT_FOR([]() { return true; }, 0.1) << "should not happen";
-}
+ protected:
+  std::unique_ptr<typename SERVER::Stub> theStub;
+  const std::string                      theServerEndpoint;
+};
 
-} // namespace support
+} // namespace rpc
 } // namespace uiiit

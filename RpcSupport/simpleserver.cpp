@@ -27,9 +27,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#pragma once
+#include "simpleserver.h"
 
-#include "Support/wait.h"
+#include <glog/logging.h>
 
-#define WAIT_FOR(pred, time)                                                   \
-  ASSERT_TRUE(support::waitFor<bool>(pred, true, time))
+#include <grpc++/grpc++.h>
+
+namespace uiiit {
+namespace rpc {
+
+SimpleServer::SimpleServer(const std::string& aServerEndpoint)
+    : theServerEndpoint(aServerEndpoint)
+    , theServer() {
+}
+
+SimpleServer::~SimpleServer() {
+  if (theServer) {
+    theServer->Shutdown();
+  }
+}
+
+bool SimpleServer::running() const {
+  return static_cast<bool>(theServer);
+}
+
+void SimpleServer::run(const bool aBlocking) {
+  grpc::ServerBuilder myBuilder;
+  myBuilder.SetSyncServerOption(grpc::ServerBuilder::NUM_CQS, 1);
+  myBuilder.SetSyncServerOption(grpc::ServerBuilder::MIN_POLLERS, 1);
+  myBuilder.SetSyncServerOption(grpc::ServerBuilder::MAX_POLLERS, 2);
+  myBuilder.SetSyncServerOption(grpc::ServerBuilder::CQ_TIMEOUT_MSEC, 10000);
+  myBuilder.AddListeningPort(theServerEndpoint,
+                             grpc::InsecureServerCredentials());
+  myBuilder.RegisterService(&service());
+  theServer = myBuilder.BuildAndStart();
+  LOG(INFO) << "Server listening on " << theServerEndpoint;
+
+  if (aBlocking) {
+    theServer->Wait();
+  }
+}
+
+} // namespace rpc
+} // namespace uiiit

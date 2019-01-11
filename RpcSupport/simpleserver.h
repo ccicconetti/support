@@ -29,34 +29,49 @@ SOFTWARE.
 
 #pragma once
 
+#include "Support/macros.h"
+
+#include <memory>
 #include <string>
 
-#include <boost/filesystem.hpp>
+namespace grpc {
+class Service;
+class Server;
+} // namespace grpc
 
 namespace uiiit {
-namespace test {
+namespace rpc {
 
-struct TempDirRaii {
-  static const std::string& name() {
-    static const std::string myName("REMOVE_ME");
-    return myName;
-  }
+/**
+ * Single-thread non-streaming server runner.
+ */
+class SimpleServer
+{
+ public:
+  NONCOPYABLE_NONMOVABLE(SimpleServer)
 
-  static const boost::filesystem::path& path() {
-    static const boost::filesystem::path myPath(
-        boost::filesystem::current_path() / name());
-    return myPath;
-  }
+  explicit SimpleServer(const std::string& aServerEndpoint);
 
-  explicit TempDirRaii() {
-    boost::filesystem::remove_all(name());
-    boost::filesystem::create_directory(name());
-  }
+  virtual ~SimpleServer();
 
-  ~TempDirRaii() {
-    boost::filesystem::remove_all(name());
-  }
+  //! \return true if running.
+  bool running() const;
+
+  /**
+   * Start the server.
+   *
+   * \param aBlocking true if this call blocks until server shut down, which
+   * must be initiated by another thread.
+   */
+  void run(const bool aBlocking);
+
+ private:
+  virtual grpc::Service& service() = 0;
+
+ private:
+  const std::string             theServerEndpoint;
+  std::unique_ptr<grpc::Server> theServer;
 };
 
-} // namespace test
-} // namespace uiiit
+} // end namespace rpc
+} // end namespace uiiit

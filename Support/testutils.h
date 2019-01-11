@@ -27,31 +27,41 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "gtest/gtest.h"
+#pragma once
 
-#include "Support/chrono.h"
 #include "Support/wait.h"
-#include "Support/testutils.h"
+
+#include <string>
+
+#include <boost/filesystem.hpp>
+
+#define WAIT_FOR(pred, time)                                                   \
+  ASSERT_TRUE(support::waitFor<bool>(pred, true, time))
 
 namespace uiiit {
 namespace support {
 
-struct TestWait : public ::testing::Test {};
+struct TempDirRaii {
+  static const std::string& name() {
+    static const std::string myName("REMOVE_ME");
+    return myName;
+  }
 
-TEST_F(TestWait, test_waitfor) {
-  ASSERT_TRUE(support::waitFor<int>([]() { return 7; }, 7, 0.1));
+  static const boost::filesystem::path& path() {
+    static const boost::filesystem::path myPath(
+        boost::filesystem::current_path() / name());
+    return myPath;
+  }
 
-  Chrono myChrono(true);
-  ASSERT_FALSE(support::waitFor<int>([]() { return 8; }, 7, 0.1));
-  const auto myElapsed = myChrono.stop();
-  ASSERT_GT(myElapsed, 0.1);
+  explicit TempDirRaii() {
+    boost::filesystem::remove_all(name());
+    boost::filesystem::create_directory(name());
+  }
 
-  int myCounter = 0;
-  ASSERT_TRUE((
-      support::waitFor<int>([&myCounter]() { return myCounter++; }, 100, 1.0)));
-
-  WAIT_FOR([]() { return true; }, 0.1) << "should not happen";
-}
+  ~TempDirRaii() {
+    boost::filesystem::remove_all(name());
+  }
+};
 
 } // namespace support
 } // namespace uiiit
