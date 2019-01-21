@@ -34,6 +34,7 @@ add_library(testlib SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/testmovingavg.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testmovingvariance.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testmovingwnd.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/testperiodictask.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testprocess.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testqueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testrandom.cpp

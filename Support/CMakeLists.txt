@@ -23,6 +23,7 @@ add_library(uiiitsupport SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/linearestimator.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mmtable.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/movingvariance.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/periodictask.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/process.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/queue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/random.cpp
