@@ -46,13 +46,28 @@ class Saver
  public:
   NONCOPYABLE_NONMOVABLE(Saver);
 
+  /**
+   * \param aFilename The name of the file where to save the measurements. If
+   * empty then nothing is saved.
+   * \param aTimestamp True if a timestamp is added as first column, in seconds.
+   * \param aFlush True if the output stream is flushed at every measurement.
+   * \param aAppend True if the output file is opened in append mode.
+   * \param aTimeOffset The time offset to be added to the timestamp.
+   *
+   * \throw std::runtime_error if aFilename is not empty but cannot be opened.
+   */
   explicit Saver(const std::string& aFilename,
                  const bool         aTimestamp,
-                 const bool         aFlush)
+                 const bool         aFlush,
+                 const bool         aAppend,
+                 const double       aTimeOffset = 0.0)
       : theMutex()
-      , theFile(aFilename.empty() ? nullptr : new std::ofstream(aFilename))
+      , theFile(aFilename.empty() ?
+                    nullptr :
+                    new std::ofstream(
+                        aFilename, aAppend ? std::ios::app : std::ios::trunc))
       , theChrono(aTimestamp)
-      , theFlush(aFlush) {
+      , theFlush(aFlush),theTimeOffset(aTimeOffset) {
     if (not aFilename.empty() and not theFile->is_open()) {
       throw std::runtime_error("Could not open '" + aFilename + "'");
     }
@@ -190,7 +205,7 @@ class Saver
  private:
   void timestamp() const {
     if (theChrono) {
-      *theFile << theChrono.time() << ' ';
+      *theFile << (theTimeOffset + theChrono.time()) << ' ';
     }
   }
   void flush() const {
@@ -204,6 +219,7 @@ class Saver
   const std::unique_ptr<std::ofstream> theFile;
   const support::Chrono                theChrono;
   const bool                           theFlush;
+  const double                         theTimeOffset;
 };
 
 } // namespace support
