@@ -53,6 +53,15 @@ class GenericRv
   std::mt19937  theGenerator;
 };
 
+//! Real r.v. interface.
+class RealRvInterface
+{
+ public:
+   virtual ~RealRvInterface() {}
+
+  virtual double operator()() = 0;
+};
+
 template <class TYPE>
 class UniformIntRv : public GenericRv
 {
@@ -69,7 +78,7 @@ class UniformIntRv : public GenericRv
   std::uniform_int_distribution<TYPE> theRv;
 };
 
-class UniformRv : public GenericRv
+class UniformRv : public GenericRv, public RealRvInterface
 {
  public:
   explicit UniformRv(const double aMin,
@@ -78,13 +87,13 @@ class UniformRv : public GenericRv
                      const size_t b,
                      const size_t c);
 
-  double operator()();
+  double operator()() override;
 
  private:
   std::uniform_real_distribution<double> theRv;
 };
 
-class ExponentialRv : public GenericRv
+class ExponentialRv : public GenericRv, public RealRvInterface
 {
  public:
   explicit ExponentialRv(const double aLambda,
@@ -92,7 +101,7 @@ class ExponentialRv : public GenericRv
                          const size_t b,
                          const size_t c);
 
-  double operator()();
+  double operator()() override;
 
  private:
   std::exponential_distribution<double> theRv;
