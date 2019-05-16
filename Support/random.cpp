@@ -46,6 +46,12 @@ GenericRv::GenericRv(const size_t a, const size_t b, const size_t c)
     , theGenerator(theSeed) {
 }
 
+ConstantRv::ConstantRv(const double aValue) : theValue(aValue) {}
+
+  double ConstantRv::operator()() {
+    return theValue;
+  }
+
 UniformRv::UniformRv(const double aMin,
                      const double aMax,
                      const size_t a,

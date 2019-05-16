@@ -57,7 +57,8 @@ class GenericRv
 class RealRvInterface
 {
  public:
-   virtual ~RealRvInterface() {}
+  virtual ~RealRvInterface() {
+  }
 
   virtual double operator()() = 0;
 };
@@ -76,6 +77,17 @@ class UniformIntRv : public GenericRv
 
  private:
   std::uniform_int_distribution<TYPE> theRv;
+};
+
+class ConstantRv : public RealRvInterface
+{
+ public:
+  explicit ConstantRv(const double aValue);
+
+  double operator()() override;
+
+ private:
+  const double theValue;
 };
 
 class UniformRv : public GenericRv, public RealRvInterface
