@@ -2,7 +2,7 @@
  ___ ___ __     __ ____________
 |   |   |  |   |__|__|__   ___/  Ubiquitout Internet @ IIT-CNR
 |   |   |  |  /__/  /  /  /      C++ support library
-|   |   |  |/__/  /   /  /       https://bitbucket.org/ccicconetti/support/
+|   |   |  |/__/  /   /  /       https://github.com/ccicconetti/support/
 |_______|__|__/__/   /__/
 
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
