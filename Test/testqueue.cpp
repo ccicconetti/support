@@ -6,7 +6,7 @@
 |_______|__|__/__/   /__/
 
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
-Copyright (c) 2018 Claudio Cicconetti <https://about.me/ccicconetti>
+Copyright (c) 2019 Claudio Cicconetti https://ccicconetti.github.io/
 
 Permission is hereby  granted, free of charge, to any  person obtaining a copy
 of this software and associated  documentation files (the "Software"), to deal
