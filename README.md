@@ -35,6 +35,7 @@ If you want to compile with compiler optimisations and no assertions:
 ```
 cd build/release
 ../build.sh clang++
+make
 ```
 
 The unit tests will not be compiled (gmock will not be even downloaded).
