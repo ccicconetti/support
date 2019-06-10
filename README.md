@@ -22,6 +22,7 @@ Once everything is ready (assuming `clang++` is your compiler):
 ```
 cd build/debug
 ../build.sh clang++
+make
 ```
 
 This will compile the full build tree consisting of:
