@@ -17,6 +17,11 @@ gRPC is better built from source, and it may automatically download and compile 
 
 Note that [gmock](https://github.com/google/googlemock) is also needed to compile the unit tests but, if everything goes right, it will be downloaded automatically by CMake (needless to say: you do need a working Internet connection for this step).
 
+```
+git clone git@github.com:ccicconetti/support.git
+git submodule update --init --recursive
+```
+
 Once everything is ready (assuming `clang++` is your compiler):
 
 ```
@@ -45,7 +50,7 @@ The unit tests will not be compiled (gmock will not be even downloaded).
 
 At least two ways:
 
-1. [recommended] Include the full git source tree in your project as a submodule (e.g., under `support`), add a `add_subdirectory(support/Support)` directive to your `CMakeLists.txt` file, fix the header inclusion path so that is also searches in there, and finally in all your targets that use the library add `uiiitsupport`.
+1. [recommended] Include the full git source tree in your project as a submodule (e.g., under `support`), add `add_subdirectory(support/Support)` and `add_subdirectory(support/RpcSupport)` directives to your `CMakeLists.txt` file, fix the header inclusion path so that is also searches in there, and finally in all your targets that use the library add `uiiitsupport` and `uiiitrpcsupport`
 
 2. Copy the header files in your header inclusion path, copy the compiled libraries in your library inclusion path.
 
