@@ -109,8 +109,8 @@ Histogram::Real Histogram::closestMean(const Real aValue,
   // moving backward/upward, respectively
 
   // 2a. search for the lower value first
-  Real myLowerY;
-  Real myLowerX;
+  Real myLowerY{0};
+  Real myLowerX{0};
   auto myLowerNdx = myBinNdx - 1; // note myBinNdx is _signed_
   for (; myLowerNdx >= 0; myLowerNdx--) {
     if (not theStats.at(myLowerNdx).empty()) {
@@ -120,9 +120,9 @@ Histogram::Real Histogram::closestMean(const Real aValue,
     }
   }
 
-  // 2b. then search for the uppwer value
-  Real myUpperY;
-  Real myUpperX;
+  // 2b. then search for the upper value
+  Real myUpperY{0};
+  Real myUpperX{0};
   auto myUpperNdx = myBinNdx + 1;
   for (; myUpperNdx < static_cast<ssize_t>(theStats.size()); myUpperNdx++) {
     if (not theStats.at(myUpperNdx).empty()) {
