@@ -29,6 +29,8 @@ SOFTWARE.
 
 #pragma once
 
+#include "macros.h"
+
 #include <memory>
 
 namespace uiiit {
@@ -39,6 +41,8 @@ class Accumulator;
 class SummaryStat final
 {
  public:
+  MOVEONLY(SummaryStat);
+
   using Real = double;
 
  public:
@@ -71,7 +75,7 @@ class SummaryStat final
   size_t count() const;
 
  private:
-  std::unique_ptr<Accumulator> theAcc;
+  std::shared_ptr<Accumulator> theAcc; // could be unique_ptr
 };
 
 } // namespace support

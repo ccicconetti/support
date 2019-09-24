@@ -59,6 +59,15 @@ Histogram::Histogram(const Real           aLower,
   }
 }
 
+Histogram::Histogram(Histogram&& aOther)
+    : theLower(aOther.theLower)
+    , theBinSpan(aOther.theBinSpan)
+    , thePolicy(aOther.thePolicy)
+    , theStats(std::move(aOther.theStats))
+    , theUnderflow(std::move(aOther.theUnderflow))
+    , theOverflow(std::move(aOther.theOverflow)) {
+}
+
 void Histogram::operator()(const Real aValue, const Real aWeight) {
   const auto   myBin = binNdx(aValue);
   SummaryStat* bin   = nullptr;

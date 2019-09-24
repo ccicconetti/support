@@ -48,6 +48,8 @@ class Accumulator final
       : theObj() {
   }
 
+  ~Accumulator() {}
+
   boost::accumulators::accumulator_set<
       SummaryStat::Real,
       boost::accumulators::stats<boost::accumulators::tag::mean,

@@ -47,7 +47,7 @@ namespace support {
  */
 class Histogram final
 {
-  MOVEONLY(Histogram);
+  NONCOPYABLE_NONMOVABLE(Histogram);
 
  public:
   using Real = support::SummaryStat::Real;
@@ -71,6 +71,9 @@ class Histogram final
                      const Real           aBinSpan,
                      const size_t         aNumBins,
                      const OverflowPolicy aPolicy);
+
+  Histogram(Histogram&& aOther);
+  Histogram& operator=(Histogram&&) = delete;
 
   //! Added a new value, with weight.
   void operator()(const Real aValue, const Real aWeight);
@@ -132,7 +135,7 @@ class Histogram final
   std::vector<SummaryStat> theStats;
   SummaryStat              theUnderflow;
   SummaryStat              theOverflow;
-};
+}; // namespace support
 
 } // namespace support
 } // namespace uiiit

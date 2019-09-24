@@ -47,9 +47,9 @@ namespace support {
 template <class TYPE>
 class MovingWnd
 {
+ public:
   MOVEONLY(MovingWnd);
 
- public:
   /**
    * Create a moving window with no values stored.
    *

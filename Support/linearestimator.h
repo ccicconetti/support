@@ -37,15 +37,18 @@ namespace support {
 
 class LinearEstimator
 {
-  MOVEONLY(LinearEstimator);
-
  public:
+  NONCOPYABLE_NONMOVABLE(LinearEstimator);
+
   /**
    * \param aWindowSize the size of the moving window to keep x_i, y_i values
    * \param aStalePeriod the (real) time after which a sample is considered
    * stale; if this value is <= 0 then the samples never expire
    */
   explicit LinearEstimator(const size_t aWindowSize, const double aStalePeriod);
+
+  LinearEstimator(LinearEstimator&& aOther) noexcept;
+  LinearEstimator& operator=(LinearEstimator&& aOther) = delete;
 
   /**
    * \return an extrapolation of the y-axis value based on the given x-axis

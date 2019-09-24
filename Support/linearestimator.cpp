@@ -45,6 +45,14 @@ LinearEstimator::LinearEstimator(const size_t aWindowSize,
     , theUpdated(true) {
 }
 
+LinearEstimator::LinearEstimator(LinearEstimator&& aOther) noexcept
+    : theWindow(std::move(aOther.theWindow))
+    , theStalePeriod(aOther.theStalePeriod)
+    , theIntercept(aOther.theIntercept)
+    , theSlope(aOther.theSlope)
+    , theUpdated(aOther.theUpdated) {
+}
+
 float LinearEstimator::extrapolate(const float x) {
   update();
   return x * theSlope + theIntercept;
