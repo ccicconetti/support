@@ -62,14 +62,16 @@ TEST_F(TestProcess, test_query_empty) {
   const auto myLoad2 = myLoad();
   EXPECT_GE(myLoad2.first, 0.9);
   EXPECT_NEAR(0.0, myLoad2.second, 0.1);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-  // call superfast
+  // call with a 1 ms pause in between
   for (auto i = 0; i < 100; i++) {
     const auto myCurLoad = myLoad();
     EXPECT_GE(myCurLoad.first, 0.0);
     EXPECT_LE(myCurLoad.first, 1.0);
     EXPECT_GE(myCurLoad.second, 0.0);
     EXPECT_LE(myCurLoad.second, 1.0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 
