@@ -27,7 +27,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "Support/queue.h"
 
 #include "gtest/gtest.h"
@@ -115,7 +114,7 @@ TEST_F(TestQueue, test_not_copyable) {
     NotCopyable& operator=(NotCopyable&&) = default;
     NotCopyable(const NotCopyable&)       = delete;
     NotCopyable& operator=(const NotCopyable&) = delete;
-    const int    theValue;
+    int          theValue;
   };
 
   Queue<NotCopyable> myQueue;
