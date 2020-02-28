@@ -33,7 +33,7 @@ This will compile the full build tree consisting of:
 
 1. `RpcSupport`: library with simple wrappers of gRPC client/server
 2. `Support: generic support library
-3. `Test`: unit tests, which you can execute with `Test/testmain`
+3. `Test`: unit tests, which you can execute with `Test/testsupport`
 
 If you want to compile with compiler optimisations and no assertions:
 
