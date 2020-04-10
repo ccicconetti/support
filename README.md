@@ -19,6 +19,7 @@ Note that [gmock](https://github.com/google/googlemock) is also needed to compil
 
 ```
 git clone git@github.com:ccicconetti/support.git
+cd support
 ```
 
 Once everything is ready (assuming `clang++` is your compiler):
