@@ -40,10 +40,12 @@ TEST_F(TestUuid, test_usage) {
   Uuid myUuid1;
   Uuid myUuid2;
 
-  ASSERT_NE(myUuid1, myUuid2);
+  ASSERT_FALSE(myUuid1 == myUuid2)
+      << myUuid1.toString() << " != " << myUuid2.toString();
 
   myUuid2 = myUuid1;
-  ASSERT_EQ(myUuid1, myUuid2);
+  ASSERT_TRUE(myUuid1 == myUuid2)
+      << myUuid1.toString() << " != " << myUuid2.toString();
   ASSERT_EQ(myUuid1.toString(), myUuid2.toString());
 
   const auto myUuid3(myUuid1.toString());
