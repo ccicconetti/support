@@ -31,8 +31,6 @@ SOFTWARE.
 
 #include <glog/logging.h>
 
-#include <grpc++/grpc++.h>
-
 namespace uiiit {
 namespace rpc {
 

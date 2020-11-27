@@ -31,16 +31,14 @@ SOFTWARE.
 
 #include "Support/macros.h"
 
+#include <grpc++/grpc++.h>
+
 #include <memory>
 #include <string>
 
 namespace grpc {
 class Service;
 } // namespace grpc
-
-namespace grpc_impl {
-class Server;
-}
 
 namespace uiiit {
 namespace rpc {
@@ -73,7 +71,7 @@ class SimpleServer
 
  private:
   const std::string             theServerEndpoint;
-  std::unique_ptr<grpc_impl::Server> theServer;
+  std::unique_ptr<grpc::Server> theServer;
 };
 
 } // end namespace rpc
