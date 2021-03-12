@@ -186,18 +186,18 @@ void Histogram::print(std::ostream& aStream) {
         , theLower(aLower)
         , theBinSpan(aBinSpan) {
     }
-    void operator()(const std::string& aHeader, SummaryStat& aStat) {
+    void operator()(const std::string& aHeader, const SummaryStat& aStat) {
       theStream << aHeader << ' ';
       common(aStat);
     }
-    void operator()(const ssize_t myBin, SummaryStat& aStat) {
+    void operator()(const ssize_t myBin, const SummaryStat& aStat) {
       theStream << "bin#" << myBin << ' ' << (theLower + myBin * theBinSpan)
                 << ".." << (theLower + (1 + myBin) * theBinSpan) << ": ";
       common(aStat);
     }
 
    private:
-    void common(SummaryStat& aStat) {
+    void common(const SummaryStat& aStat) {
       theStream << aStat.count() << ' ' << aStat.min() << ' ' << aStat.mean()
                 << ' ' << aStat.max() << ' ' << aStat.stddev() << '\n';
     }
