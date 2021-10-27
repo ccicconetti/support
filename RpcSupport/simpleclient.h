@@ -58,6 +58,10 @@ class SimpleClient
   virtual ~SimpleClient() {
   }
 
+  const std::string& serverEndpoint() const noexcept {
+    return theServerEndpoint;
+  }
+
  private:
   std::shared_ptr<grpc::Channel> theChannel;
 
