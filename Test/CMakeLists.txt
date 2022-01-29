@@ -31,6 +31,7 @@ include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
 
 add_library(testsupportlib SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/testconf.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/testexperimentdata.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testfit.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testhistogram.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testmath.cpp
