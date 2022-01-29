@@ -97,6 +97,7 @@ TEST_F(TestExperimentData, test_csv) {
     myRaii.finish(std::move(myOut));
   }
 
+  ASSERT_FLOAT_EQ(6.28, myExperimentData.peek().y);
   ASSERT_EQ(2, myExperimentData.size());
 
   // save to CSV
@@ -112,6 +113,7 @@ TEST_F(TestExperimentData, test_csv) {
     ASSERT_EQ(myCounter, std::stoi(myTokens[0]));
     ASSERT_FLOAT_EQ(3.14 * (1 + myCounter), std::stod(myTokens[1]));
     ASSERT_EQ("out" + std::to_string(myCounter), myTokens[2]);
+    ASSERT_GT(std::stod(myTokens[3]), 0);
     myCounter++;
   }
 }

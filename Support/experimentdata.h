@@ -56,6 +56,8 @@ namespace support {
  * - toCsv(): return a single-line string of comma-separated values
  * - toString(): return a single-line human-readable representation
  *
+ * Negative duration means the experiment did not terminate.
+ *
  * Objectives of this class are not copyable.
  *
  * Access to members is not thread-safe.
@@ -74,7 +76,7 @@ class ExperimentData final
         : theParent(aParent)
         , theIn(std::forward<IN>(aIn))
         , theChrono(true)
-        , theDuration(0) {
+        , theDuration(-1) {
       // noop
     }
 
@@ -142,6 +144,18 @@ class ExperimentData final
       throw std::runtime_error("no experiment data");
     }
     return std::get<1>(theData.back()).toString();
+  }
+
+  /**
+   * @brief Peek the last experiment output.
+   *
+   * @throw std::runtime_error if there are no experiments.
+   */
+  const OUT& peek() const {
+    if (theData.empty()) {
+      throw std::runtime_error("no experiment data");
+    }
+    return std::get<1>(theData.back());
   }
 
  private:
