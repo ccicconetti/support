@@ -32,9 +32,12 @@ SOFTWARE.
 #include "Support/chrono.h"
 #include "Support/macros.h"
 
+#include <glog/logging.h>
+
 #include <cstddef>
 #include <deque>
 #include <iostream>
+#include <stdexcept>
 #include <tuple>
 #include <utility>
 
@@ -42,15 +45,16 @@ namespace uiiit {
 namespace support {
 
 /**
- * @brief Keeps experiment data in memory.
+ * @brief Keeps experiment data in memory. Also records the experiment duration.
  *
  * @tparam IN the description of the experiment
  * @tparam OUT the output of the experiment
  *
- * Both IN and OUT must be at least movable and they must implement the
- * following members:
+ * Both IN and OUT must be movable and default-constructible, and they must
+ * implement the following members:
  *
  * - toCsv(): return a single-line string of comma-separated values
+ * - toString(): return a single-line human-readable representation
  *
  * Objectives of this class are not copyable.
  *
@@ -80,6 +84,8 @@ class ExperimentData final
     }
 
     ~Raii() {
+      LOG_IF(WARNING, theChrono)
+          << "experiment started but not terminated: " << theIn.toString();
       theParent.push(std::move(theIn), std::move(theOut), theDuration);
     }
 
@@ -110,12 +116,32 @@ class ExperimentData final
    *
    * @param aStream The stream where to save the data, one experiment per line.
    */
-  void toCsv(std::ostream& aStream) {
+  void toCsv(std::ostream& aStream) const {
     for (const auto& elem : theData) {
       aStream << std::get<0>(elem).toCsv() << ',' << std::get<1>(elem).toCsv()
               << ',' << std::get<2>(elem) << '\n';
     }
     aStream << std::flush;
+  }
+
+  /**
+   * @brief Dump the last experiment parameters in a human-readable manner.
+   */
+  std::string lastIn() const {
+    if (theData.empty()) {
+      throw std::runtime_error("no experiment data");
+    }
+    return std::get<0>(theData.back()).toString();
+  }
+
+  /**
+   * @brief Dump the last experiment output in a human-readable manner.
+   */
+  std::string lastOut() const {
+    if (theData.empty()) {
+      throw std::runtime_error("no experiment data");
+    }
+    return std::get<1>(theData.back()).toString();
   }
 
  private:

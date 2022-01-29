@@ -46,6 +46,9 @@ struct TestExperimentData : public ::testing::Test {
     std::string toCsv() const {
       return std::to_string(x);
     }
+    std::string toString() const {
+      return "x = " + std::to_string(x);
+    }
   };
   struct OUT {
     double      y;
@@ -53,7 +56,11 @@ struct TestExperimentData : public ::testing::Test {
     std::string toCsv() const {
       return std::to_string(y) + "," + z;
     }
+    std::string toString() const {
+      return "y = " + std::to_string(y) + " " + z;
+    }
   };
+  using Raii = ExperimentData<IN, OUT>::Raii;
 };
 
 TEST_F(TestExperimentData, test_ctor) {
@@ -62,9 +69,19 @@ TEST_F(TestExperimentData, test_ctor) {
   ExperimentData<EMPTY_IN, EMPTY_OUT> myExperimentData;
 }
 
+TEST_F(TestExperimentData, test_no_finish) {
+  ExperimentData<IN, OUT> myExperimentData;
+  {
+    Raii myRaii(myExperimentData, {0});
+    // no call to finish
+  }
+  ASSERT_EQ(1, myExperimentData.size());
+  ASSERT_EQ("x = 0", myExperimentData.lastIn());
+  ASSERT_EQ("y = 0.000000 ", myExperimentData.lastOut());
+}
+
 TEST_F(TestExperimentData, test_csv) {
   ExperimentData<IN, OUT> myExperimentData;
-  using Raii = ExperimentData<IN, OUT>::Raii;
 
   {
     Raii myRaii(myExperimentData, {0});
