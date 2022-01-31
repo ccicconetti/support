@@ -37,6 +37,7 @@ SOFTWARE.
 #include <cstddef>
 #include <deque>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -60,7 +61,7 @@ namespace support {
  *
  * Objectives of this class are not copyable.
  *
- * Access to members is not thread-safe.
+ * Access to members is thread-safe.
  */
 template <class IN, class OUT>
 class ExperimentData final
@@ -78,6 +79,10 @@ class ExperimentData final
         , theChrono(true)
         , theDuration(-1) {
       // noop
+    }
+
+    const IN& in() noexcept {
+      return theIn;
     }
 
     void finish(OUT&& aOut) {
@@ -100,7 +105,8 @@ class ExperimentData final
   };
 
   ExperimentData()
-      : theData() {
+      : theData()
+      , theMutex() {
     // noop
   }
 
@@ -110,6 +116,7 @@ class ExperimentData final
    * @return std::size_t
    */
   std::size_t size() const noexcept {
+    const std::lock_guard<std::mutex> myLock(theMutex);
     return theData.size();
   }
 
@@ -119,6 +126,7 @@ class ExperimentData final
    * @param aStream The stream where to save the data, one experiment per line.
    */
   void toCsv(std::ostream& aStream) const {
+    const std::lock_guard<std::mutex> myLock(theMutex);
     for (const auto& elem : theData) {
       aStream << std::get<0>(elem).toCsv() << ',' << std::get<1>(elem).toCsv()
               << ',' << std::get<2>(elem) << '\n';
@@ -130,6 +138,7 @@ class ExperimentData final
    * @brief Dump the last experiment parameters in a human-readable manner.
    */
   std::string lastIn() const {
+    const std::lock_guard<std::mutex> myLock(theMutex);
     if (theData.empty()) {
       throw std::runtime_error("no experiment data");
     }
@@ -140,6 +149,7 @@ class ExperimentData final
    * @brief Dump the last experiment output in a human-readable manner.
    */
   std::string lastOut() const {
+    const std::lock_guard<std::mutex> myLock(theMutex);
     if (theData.empty()) {
       throw std::runtime_error("no experiment data");
     }
@@ -152,6 +162,7 @@ class ExperimentData final
    * @throw std::runtime_error if there are no experiments.
    */
   const OUT& peek() const {
+    const std::lock_guard<std::mutex> myLock(theMutex);
     if (theData.empty()) {
       throw std::runtime_error("no experiment data");
     }
@@ -167,11 +178,13 @@ class ExperimentData final
    * @param aDuration The experiment duration.
    */
   void push(IN&& aIn, OUT&& aOut, const double aDuration) {
+    const std::lock_guard<std::mutex> myLock(theMutex);
     theData.emplace_back(aIn, aOut, aDuration);
   }
 
  private:
-  Data theData;
+  Data               theData;
+  mutable std::mutex theMutex;
 };
 
 } // namespace support
