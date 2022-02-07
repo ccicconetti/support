@@ -1,1 +1,5 @@
 rbuild
+release
+debug
+compile_commands.json
+.cache
