@@ -36,17 +36,18 @@ SOFTWARE.
 #include "Support/glograii.h"
 #include "Support/split.h"
 
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 
-#include <exception>
 #include <glog/logging.h>
 
 #include <cassert>
 #include <deque>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -78,6 +79,10 @@ struct Row {
     } else {
       throw std::runtime_error("Invalid read/write flags in row: " + aRow);
     }
+  }
+
+  std::string key() const {
+    return theUser + "," + theApp;
   }
 
   double      theTimestamp;
@@ -117,24 +122,52 @@ std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader) {
   return ret;
 }
 
-std::unordered_map<std::string, std::vector<double>>
-readWritePeriods(const std::deque<Row>& aDataset) {
-  std::unordered_map<std::string, std::vector<double>> ret;
+struct Period {
+  std::vector<double>      theReadDurations;
+  std::vector<double>      theWriteDurations;
+  std::vector<std::size_t> theReadEvents;
+  std::vector<std::size_t> theWriteEvents;
+};
+
+std::size_t
+readWritePeriods(const std::deque<Row>&                   aDataset,
+                 std::unordered_map<std::string, Period>& aPeriods) {
+  // largest vector
+  std::size_t ret = 0;
 
   // key: user id + app id
   // value: 0: last timestamp
   //        1: last write flag
-  std::unordered_map<std::string, std::tuple<double, bool>> myLast;
+  //        2: consecutive events
+  std::unordered_map<std::string, std::tuple<double, bool, std::size_t>> myLast;
   for (const auto& myRow : aDataset) {
-    const auto myKey = myRow.theUser + "|" + myRow.theApp;
+    const auto myKey = myRow.key();
     auto       res   = myLast.emplace(
-        myKey, std::make_tuple(myRow.theTimestamp, myRow.theWrite));
+        myKey, std::make_tuple(myRow.theTimestamp, myRow.theWrite, 1));
+
     if (not res.second) {
-      if (std::get<1>(res.first->second) != myRow.theWrite) {
-        ret[myKey].emplace_back(myRow.theTimestamp -
-                                std::get<0>(res.first->second));
+      if (std::get<1>(res.first->second) == myRow.theWrite) {
+        // we are in the middle of a period of consecutive read/write operations
+        std::get<2>(res.first->second)++;
+
+      } else {
+        // the read/write period just ended
+        auto& myPeriod = aPeriods[myKey];
+
+        auto& myDurations = myRow.theWrite ? myPeriod.theReadDurations :
+                                             myPeriod.theWriteDurations;
+        myDurations.emplace_back(myRow.theTimestamp -
+                                 std::get<0>(res.first->second));
+
+        auto& myEvents =
+            myRow.theWrite ? myPeriod.theReadEvents : myPeriod.theWriteEvents;
+        myEvents.emplace_back(std::get<2>(res.first->second));
+
+        ret = std::max(ret, myDurations.size());
+
         std::get<0>(res.first->second) = myRow.theTimestamp;
         std::get<1>(res.first->second) = myRow.theWrite;
+        std::get<2>(res.first->second) = 1;
       }
     }
   }
@@ -142,10 +175,54 @@ readWritePeriods(const std::deque<Row>& aDataset) {
   return ret;
 }
 
+void savePeriods(std::unordered_map<std::string, Period>& aPeriods,
+                 const boost::filesystem::path&           aOutputPath) {
+  std::size_t myCounter = 0;
+  for (const auto& myPeriod : aPeriods) {
+    myCounter++;
+    // clang-format off
+    std::ofstream myRDStream((aOutputPath / (std::string("read-durations-")+std::to_string(myCounter)+".dat")).string());
+    std::ofstream myWDStream((aOutputPath / (std::string("write-durations-")+std::to_string(myCounter)+".dat")).string());
+    std::ofstream myREStream((aOutputPath / (std::string("read-events-")+std::to_string(myCounter)+".dat")).string());
+    std::ofstream myWEStream((aOutputPath / (std::string("write-events-")+std::to_string(myCounter)+".dat")).string());
+    // clang-format on
+    for (const auto& myValue : myPeriod.second.theReadDurations) {
+      myRDStream << myValue << '\n';
+    }
+    for (const auto& myValue : myPeriod.second.theWriteDurations) {
+      myWDStream << myValue << '\n';
+    }
+    for (const auto& myValue : myPeriod.second.theReadEvents) {
+      myREStream << myValue << '\n';
+    }
+    for (const auto& myValue : myPeriod.second.theWriteEvents) {
+      myWEStream << myValue << '\n';
+    }
+  }
+}
+
+void saveNumInvocations(const std::deque<Row>&         aDataset,
+                        const boost::filesystem::path& aOutputPath) {
+  std::unordered_map<std::string, std::size_t> myNumInvocations;
+  for (const auto& myRow : aDataset) {
+    auto it = myNumInvocations.emplace(myRow.key(), 0);
+    it.first->second++;
+  }
+
+  std::ofstream myStream(
+      (aOutputPath / (std::string("num-invocations.dat"))).string());
+
+  for (const auto& elem : myNumInvocations) {
+    myStream << elem.first << ',' << elem.second << '\n';
+  }
+}
+
 int main(int argc, char* argv[]) {
   us::GlogRaii myGlogRaii(argv[0]);
 
   std::string myDatasetFilename;
+  std::string myOutputDir;
+  std::string myAnalysis;
 
   po::options_description myDesc("Allowed options");
   // clang-format off
@@ -154,6 +231,12 @@ int main(int argc, char* argv[]) {
     ("input-dataset",
      po::value<std::string>(&myDatasetFilename)->default_value(""),
      "Input dataset file name.")
+    ("output-dir",
+     po::value<std::string>(&myOutputDir)->default_value(""),
+     "Output directory.")
+    ("analysis",
+     po::value<std::string>(&myAnalysis)->default_value("num-invocations"),
+     "Type of analysis, one of: {read-write-periods, num-invocations}.")
     ;
   // clang-format on
 
@@ -167,13 +250,31 @@ int main(int argc, char* argv[]) {
       return EXIT_FAILURE;
     }
 
+    VLOG(1) << "reading from: " << myDatasetFilename;
     std::ifstream myDatasetStream(myDatasetFilename);
     if (not myDatasetStream) {
       throw std::runtime_error("could not open dataset file for reading: " +
                                myDatasetFilename);
     }
-
     auto myDataset = loadDataset(myDatasetStream, true);
+
+    VLOG(1) << "analyzing dataset";
+    if (myAnalysis == "read-write-periods") {
+      std::unordered_map<std::string, Period> myPeriods;
+      [[maybe_unused]] const auto             myMaxValues =
+          readWritePeriods(myDataset, myPeriods);
+
+      VLOG(1) << "writing output";
+      savePeriods(myPeriods, myOutputDir);
+
+    } else if (myAnalysis == "num-invocations") {
+      saveNumInvocations(myDataset, myOutputDir);
+
+    } else {
+      throw std::runtime_error("Invalid type of analysis: " + myAnalysis);
+    }
+
+    VLOG(1) << "done";
 
     return EXIT_SUCCESS;
   } catch (const std::exception& aErr) {
