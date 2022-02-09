@@ -33,6 +33,10 @@ SOFTWARE.
 
 #include <glog/logging.h>
 
+#include <list>
+#include <stdexcept>
+#include <vector>
+
 namespace uiiit {
 namespace support {
 
@@ -107,6 +111,32 @@ TEST_F(TestRandom, test_exponential) {
 TEST_F(TestRandom, test_poisson) {
   PoissonRv myRv(10, 0, 0, 0);
   test_mean(myRv, 10);
+}
+
+TEST_F(TestRandom, test_choice) {
+  UniformRv myRv(0, 1, 0, 0, 0);
+
+  {
+    std::vector<int> myVector({0, 1, 2, 3});
+    std::set<int>    myFound;
+    for (size_t i = 0; i < 100; i++) {
+      myFound.emplace(choice(myVector, myRv));
+    }
+    ASSERT_EQ(std::set<int>({0, 1, 2, 3}), myFound);
+  }
+
+  {
+    std::list<std::string> myList({"Mickey", "Goofy", "Donald"});
+    std::set<std::string>  myFound;
+    for (size_t i = 0; i < 100; i++) {
+      myFound.emplace(choice(myList, myRv));
+    }
+    ASSERT_EQ(std::set<std::string>({"Mickey", "Goofy", "Donald"}), myFound);
+  }
+
+  ASSERT_EQ(42, choice(std::vector<int>({42}), myRv));
+
+  ASSERT_THROW(choice(std::vector<int>(), myRv), std::runtime_error);
 }
 
 } // namespace support

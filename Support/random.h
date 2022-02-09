@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include "Support/macros.h"
 
+#include <cassert>
 #include <random>
 #include <stdexcept>
 
@@ -132,6 +133,35 @@ class PoissonRv : public GenericRv
  private:
   std::poisson_distribution<size_t> theRv;
 };
+
+/**
+ * @brief Pick an element from a container
+ *
+ * @tparam CONTAINER The type of the container.
+ * @param aContainer The source container.
+ * @param aRv A r.v. that generates number in [0,1].
+ * @return CONTAINER::value_type The element chosen.
+ */
+template <typename CONTAINER>
+typename CONTAINER::value_type choice(const CONTAINER& aContainer,
+                                      RealRvInterface& aRv) {
+  if (aContainer.empty()) {
+    throw std::runtime_error(
+        "cannot select an element from an empty container");
+  }
+  auto myOffset = aContainer.size();
+  while (myOffset >= aContainer.size()) {
+    const auto myRnd = aRv();
+    assert(myRnd >= 0 and myRnd <= 1);
+    myOffset =
+        static_cast<typename CONTAINER::size_type>(myRnd * aContainer.size());
+  }
+  assert(myOffset >= 0 and myOffset < aContainer.size());
+  auto it = aContainer.begin();
+  std::advance(it, myOffset);
+  assert(it != aContainer.end());
+  return *it;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
