@@ -33,6 +33,7 @@ SOFTWARE.
 
 #include <cassert>
 #include <random>
+#include <set>
 #include <stdexcept>
 
 namespace uiiit {
@@ -161,6 +162,39 @@ typename CONTAINER::value_type choice(const CONTAINER& aContainer,
   std::advance(it, myOffset);
   assert(it != aContainer.end());
   return *it;
+}
+
+/**
+ * @brief Return a sample of k (unique) elements from a container.
+ *
+ * @tparam CONTAINER The type of the container.
+ * @param aContainer The source container.
+ * @param aK The number of elements sampled.
+ * @param aRv A r.v. that generates number in [0,1].
+ * @return CONTAINER The elements sampled.
+ */
+template <typename CONTAINER>
+CONTAINER sample(const CONTAINER&  aContainer,
+                 const std::size_t aK,
+                 RealRvInterface&  aRv) {
+  CONTAINER ret;
+  if (aContainer.size() <= aK) {
+    std::copy(
+        aContainer.begin(), aContainer.end(), std::inserter(ret, ret.begin()));
+
+  } else {
+    std::set<typename CONTAINER::value_type> myFound;
+    for (std::size_t i = 0; i < aK; i++) {
+      while (myFound.emplace(choice(aContainer, aRv)).second == false) {
+        // noop
+      }
+    }
+    for (auto it = myFound.begin(); it != myFound.end(); it = myFound.begin()) {
+      ret.insert(ret.begin(), std::move(myFound.extract(it).value()));
+    }
+  }
+
+  return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

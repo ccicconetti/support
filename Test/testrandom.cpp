@@ -27,6 +27,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include "Support/macros.h"
 #include "Support/random.h"
 
 #include "gtest/gtest.h"
@@ -137,6 +138,24 @@ TEST_F(TestRandom, test_choice) {
   ASSERT_EQ(42, choice(std::vector<int>({42}), myRv));
 
   ASSERT_THROW(choice(std::vector<int>(), myRv), std::runtime_error);
+}
+
+TEST_F(TestRandom, test_sample) {
+  UniformRv myRv(0, 1, 0, 0, 0);
+
+  std::set<int> myVector({0, 1, 2, 3});
+  ASSERT_EQ(myVector, sample(myVector, 4, myRv));
+  ASSERT_EQ(myVector, sample(myVector, 99, myRv));
+
+  std::set<int> myFound;
+  for (size_t i = 0; i < 100; i++) {
+    const auto mySample = sample(myVector, 2, myRv);
+    ASSERT_EQ(2, mySample.size());
+    for (const auto& elem : mySample) {
+      myFound.emplace(elem);
+    }
+  }
+  ASSERT_EQ(myVector, myFound);
 }
 
 } // namespace support
