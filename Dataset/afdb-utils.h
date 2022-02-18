@@ -36,6 +36,7 @@ SOFTWARE.
 
 #include <glog/logging.h>
 
+#include <array>
 #include <cassert>
 #include <deque>
 #include <exception>
@@ -92,7 +93,8 @@ enum class ExecMode : unsigned int {
 
 std::string toString(const ExecMode aExecMode);
 
-const std::list<ExecMode>& allExecModes();
+const std::array<ExecMode, static_cast<unsigned int>(ExecMode::Size)>&
+allExecModes();
 
 struct CostModel {
   double theCostExecMu        = 0;
@@ -102,7 +104,31 @@ struct CostModel {
   double theCostMigrateMu     = 0;
   double theCostMigrateLambda = 0;
 
-  std::string toString() const;
+  std::string                            toString() const;
+  static const std::vector<std::string>& explain();
+};
+
+struct CostOutput {
+  enum class Type : unsigned int {
+    Microservice = 0,
+    Stateless    = 1,
+  };
+
+  // output variables
+  double      theDuration       = 0;
+  std::size_t theNumInvocations = 0;
+  std::array<double, static_cast<unsigned int>(ExecMode::Size)> theCosts;
+
+  std::size_t theBestNextNumMu     = 0;
+  std::size_t theBestNextNumLambda = 0;
+  double      theBestNextDurMu     = 0;
+  double      theBestNextDurLambda = 0;
+
+  // internal variables
+  Type theBestNextLastType = Type::Microservice;
+
+  std::string                            toString() const;
+  static const std::vector<std::string>& explain();
 };
 
 /**
@@ -110,9 +136,9 @@ struct CostModel {
  *
  * @param aDataset The input dataset.
  * @param aCostModel The cost model.
- * @return std::unordered_map<std::string, std::vector<double>>
+ * @return The performance metrics, one per key.
  */
-std::unordered_map<std::string, std::vector<double>>
+std::unordered_map<std::string, CostOutput>
 cost(const std::deque<Row>& aDataset, const CostModel& aCostModel);
 
 } // namespace dataset

@@ -67,8 +67,9 @@ int main(int argc, char* argv[]) {
   po::options_description myDesc("Allowed options");
   // clang-format off
   myDesc.add_options()
-    ("help,h", "produce help message")
-    ("version,v", "print version and quit")
+    ("help,h", "Produce help message")
+    ("version,v", "Print version and quit")
+    ("explain", "Show the meaning of the columns in the output file")
     ("input-dataset",
      po::value<std::string>(&myDatasetFilename)->default_value(""),
      "Input dataset file name.")
@@ -86,16 +87,16 @@ int main(int argc, char* argv[]) {
      po::value<double>(&myCostModel.theCostExecLambda)->default_value(10),
      "Cost of executing a single invocation as stateless function.")
     ("cost-warm-mu",
-     po::value<double>(&myCostModel.theCostWarmMu)->default_value(0.001),
+     po::value<double>(&myCostModel.theCostWarmMu)->default_value(0.00015),
      "Cost of keeping a function warm as microservice.")
     ("cost-warm-lambda",
      po::value<double>(&myCostModel.theCostWarmLambda)->default_value(0),
      "Cost of keeping a function warm as stateless function.")
     ("cost-migrate-mu",
-     po::value<double>(&myCostModel.theCostMigrateMu)->default_value(5),
+     po::value<double>(&myCostModel.theCostMigrateMu)->default_value(50),
      "Cost of migrating from stateless to microservice.")
     ("cost-migrate-lambda",
-     po::value<double>(&myCostModel.theCostMigrateLambda)->default_value(5),
+     po::value<double>(&myCostModel.theCostMigrateLambda)->default_value(50),
      "Cost of migrating from microservice to stateless")
     ;
   // clang-format on
@@ -112,6 +113,18 @@ int main(int argc, char* argv[]) {
 
     if (myVarMap.count("version")) {
       std::cout << us::version() << std::endl;
+      return EXIT_SUCCESS;
+    }
+
+    if (myVarMap.count("explain")) {
+      std::cout << "#1\tapplication\n#2\tfunction\n";
+      std::size_t myIndex = 3;
+      for (const auto& myLabel : ud::CostModel::explain()) {
+        std::cout << '#' << myIndex++ << '\t' << myLabel << '\n';
+      }
+      for (const auto& myLabel : ud::CostOutput::explain()) {
+        std::cout << '#' << myIndex++ << '\t' << myLabel << '\n';
+      }
       return EXIT_SUCCESS;
     }
 
@@ -138,13 +151,8 @@ int main(int argc, char* argv[]) {
           myVarMap.count("append") ? std::ios::app : std::ios::trunc);
       const auto myCosts = cost(myDataset, myCostModel);
       for (const auto& myCost : myCosts) {
-        mySummaryStream << myCost.first << ',' << myCostModel.toString();
-        for (const auto& myExecMode : ud::allExecModes()) {
-          mySummaryStream
-              << ',' << ud::toString(myExecMode) << ','
-              << myCost.second[static_cast<unsigned int>(myExecMode)];
-        }
-        mySummaryStream << '\n';
+        mySummaryStream << myCost.first << ',' << myCostModel.toString() << ','
+                        << myCost.second.toString() << '\n';
       }
 
     } else {

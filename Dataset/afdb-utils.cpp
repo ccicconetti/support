@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include "Dataset/afdb-utils.h"
 
+#include <cassert>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
@@ -99,12 +100,14 @@ std::string toString(const ExecMode aExecMode) {
   // clang-format on
 }
 
-const std::list<ExecMode>& allExecModes() {
-  static const std::list<ExecMode> myExecModes({
-      ExecMode::AlwaysMu,
-      ExecMode::AlwaysLambda,
-      ExecMode::BestNext,
-  });
+const std::array<ExecMode, static_cast<unsigned int>(ExecMode::Size)>&
+allExecModes() {
+  static const std::array<ExecMode, static_cast<unsigned int>(ExecMode::Size)>
+      myExecModes({
+          ExecMode::AlwaysMu,
+          ExecMode::AlwaysLambda,
+          ExecMode::BestNext,
+      });
   return myExecModes;
 }
 
@@ -117,8 +120,51 @@ std::string CostModel::toString() const {
   return ret.str();
 }
 
-std::unordered_map<std::string, std::vector<double>>
+const std::vector<std::string>& CostModel::explain() {
+  static const std::vector<std::string> myExplain({
+      "cost-exec-mu",
+      "cost-exec-lambda",
+      "cost-warm-mu",
+      "cost-warm-lambda",
+      "cost-migrate-mu",
+      "cost-migrate-lambda",
+  });
+  return myExplain;
+}
+
+std::string CostOutput::toString() const {
+  std::stringstream ret;
+  ret << theDuration << ',' << theNumInvocations;
+  for (const auto& myCost : theCosts) {
+    ret << ',' << myCost;
+  }
+  ret << ',' << theBestNextNumMu << ',' << theBestNextNumLambda << ','
+      << theBestNextDurMu << ',' << theBestNextDurLambda;
+  return ret.str();
+}
+
+const std::vector<std::string>& CostOutput::explain() {
+  static std::vector<std::string> myExplain({
+      "duration",
+      "num-invocations",
+  });
+  if (myExplain.size() == 2) {
+    for (const auto& myExecMode : allExecModes()) {
+      myExplain.emplace_back(uiiit::dataset::toString(myExecMode));
+    }
+    myExplain.emplace_back("best-next-num-mu");
+    myExplain.emplace_back("best-next-num-lambda");
+    myExplain.emplace_back("best-next-dur-mu");
+    myExplain.emplace_back("best-next-dur-lambda");
+  }
+
+  return myExplain;
+}
+
+std::unordered_map<std::string, CostOutput>
 cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
+  const std::size_t myBestNextLookAhead = 100;
+
   // group the rows by key and store only the timestamps
   std::unordered_map<std::string, std::deque<double>> myTimestamps;
   for (const auto& myRow : aDataset) {
@@ -126,21 +172,86 @@ cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
   }
 
   // compute the costs
-  std::unordered_map<std::string, std::vector<double>> ret;
+  std::unordered_map<std::string, CostOutput> ret;
   for (const auto& elem : myTimestamps) {
-    auto& myCost =
-        ret.emplace(elem.first,
-                    std::vector<double>(
-                        static_cast<unsigned int>(ExecMode::Size), 0))
-            .first->second;
+    auto& myOut = ret.emplace(elem.first, CostOutput()).first->second;
     for (auto cur = elem.second.begin(); cur != elem.second.end(); ++cur) {
       auto next = std::next(cur);
       if (next == elem.second.end()) {
         break;
       }
 
-      myCost[static_cast<unsigned int>(ExecMode::AlwaysMu)] +=
-          aCostModel.theCostExecMu + aCostModel.theCostWarmMu * (*next - *cur);
+      const auto myTimeToNext = *next - *cur;
+      myOut.theDuration += myTimeToNext;
+      myOut.theNumInvocations++;
+
+      // AlwaysMu
+      myOut.theCosts[static_cast<unsigned int>(ExecMode::AlwaysMu)] +=
+          aCostModel.theCostExecMu + aCostModel.theCostWarmMu * myTimeToNext;
+
+      // AlwaysLambda
+      myOut.theCosts[static_cast<unsigned int>(ExecMode::AlwaysLambda)] +=
+          aCostModel.theCostExecLambda +
+          aCostModel.theCostWarmLambda * myTimeToNext;
+
+      // BestNext
+      auto& myBnCost =
+          myOut.theCosts[static_cast<unsigned int>(ExecMode::BestNext)];
+      if (myOut.theBestNextLastType == CostOutput::Type::Microservice) {
+        myBnCost += aCostModel.theCostExecMu;
+        myOut.theBestNextNumMu++;
+
+        if ((aCostModel.theCostWarmMu * myTimeToNext) >
+            (aCostModel.theCostMigrateLambda +
+             aCostModel.theCostWarmLambda * myTimeToNext)) {
+          // migrate from microservice to stateless
+          myOut.theBestNextLastType = CostOutput::Type::Stateless;
+          myOut.theBestNextDurLambda += myTimeToNext;
+          myBnCost += aCostModel.theCostMigrateLambda +
+                      aCostModel.theCostWarmLambda * myTimeToNext;
+
+        } else {
+          myOut.theBestNextDurMu += myTimeToNext;
+          myBnCost += aCostModel.theCostWarmMu * myTimeToNext;
+        }
+
+      } else {
+        assert(myOut.theBestNextLastType == CostOutput::Type::Stateless);
+
+        auto myCostMu = aCostModel.theCostMigrateMu + aCostModel.theCostExecMu;
+        auto myCostLambda = aCostModel.theCostExecLambda;
+        auto myLast       = *cur;
+        std::size_t i     = 0;
+        for (auto it = next;
+             it != elem.second.end() and i < myBestNextLookAhead;
+             ++it, ++i) {
+          const auto myDuration = *it - myLast;
+          myCostMu +=
+              aCostModel.theCostExecMu + aCostModel.theCostWarmMu * myDuration;
+          myCostLambda += aCostModel.theCostExecLambda +
+                          aCostModel.theCostWarmLambda * myDuration;
+          myLast = *it;
+
+          if (myCostMu < myCostLambda) {
+            break;
+          }
+        }
+
+        if (myCostMu < myCostLambda) {
+          // migrate from stateless to microservice
+          myOut.theBestNextLastType = CostOutput::Type::Microservice;
+          myOut.theBestNextNumMu++;
+          myOut.theBestNextDurMu += myTimeToNext;
+          myBnCost += aCostModel.theCostMigrateMu + aCostModel.theCostExecMu +
+                      aCostModel.theCostWarmMu * myTimeToNext;
+
+        } else {
+          myOut.theBestNextNumLambda++;
+          myOut.theBestNextDurLambda += myTimeToNext;
+          myBnCost += aCostModel.theCostExecLambda +
+                      aCostModel.theCostWarmLambda * myTimeToNext;
+        }
+      }
     }
   }
 
