@@ -31,6 +31,8 @@ SOFTWARE.
 
 #include "Dataset/afdb-utils.h"
 
+#include <sstream>
+
 namespace uiiit {
 namespace dataset {
 
@@ -64,9 +66,9 @@ std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader) {
   std::string myLine;
   if (aWithHeader) {
     std::getline(aStream, myLine);
-  }
-  if (myLine.empty()) {
-    throw std::runtime_error("Invalid empty header");
+    if (myLine.empty()) {
+      throw std::runtime_error("Invalid empty header");
+    }
   }
   std::deque<Row> ret;
   while (aStream) {
@@ -82,6 +84,20 @@ std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader) {
     }
   }
   return ret;
+}
+
+std::string Cost::toString() const {
+  std::stringstream ret;
+  ret << theCostExecMu << ',' << theCostExecLambda << ',' << theCostWarmMu
+      << ',' << theCostWarmLambda << ',' << theCostMigrateMu << ','
+      << theCostMigrateLambda;
+
+  return ret.str();
+}
+
+double cost(const std::deque<Row>& aDataset, const ExecMode aExecMode) {
+  LOG(INFO) << aDataset.size() << ' ' << static_cast<int>(aExecMode);
+  return 0;
 }
 
 } // namespace dataset

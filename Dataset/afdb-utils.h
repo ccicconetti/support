@@ -78,5 +78,27 @@ struct Row {
  */
 std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader);
 
+/**
+ * @brief How we assume functions will be invoked.
+ */
+enum class ExecMode : int {
+  AlwaysMu     = 0, //!< microservices only
+  AlwaysLambda = 1, //!< stateless functions only
+  BestNext     = 2, //!< decide based on the next invocation
+};
+
+struct Cost {
+  double theCostExecMu        = 0;
+  double theCostExecLambda    = 0;
+  double theCostWarmMu        = 0;
+  double theCostWarmLambda    = 0;
+  double theCostMigrateMu     = 0;
+  double theCostMigrateLambda = 0;
+
+  std::string toString() const;
+};
+
+double cost(const std::deque<Row>& aDataset, const ExecMode aExecMode);
+
 } // namespace dataset
 } // namespace uiiit
