@@ -59,11 +59,10 @@ namespace ud = uiiit::dataset;
 int main(int argc, char* argv[]) {
   us::GlogRaii myGlogRaii(argv[0]);
 
-  std::string myDatasetFilename;
-  std::string myOutputDir;
-  std::string myAnalysis;
-  std::string myKey;
-  ud::Cost    myCost;
+  std::string   myDatasetFilename;
+  std::string   myOutputDir;
+  std::string   myAnalysis;
+  ud::CostModel myCostModel;
 
   po::options_description myDesc("Allowed options");
   // clang-format off
@@ -73,9 +72,6 @@ int main(int argc, char* argv[]) {
     ("input-dataset",
      po::value<std::string>(&myDatasetFilename)->default_value(""),
      "Input dataset file name.")
-    ("key",
-     po::value<std::string>(&myKey)->default_value(""),
-     "Only consider rows matching this key.")
     ("output-dir",
      po::value<std::string>(&myOutputDir)->default_value(""),
      "Output directory.")
@@ -84,22 +80,22 @@ int main(int argc, char* argv[]) {
      po::value<std::string>(&myAnalysis)->default_value("invocation-only"),
      "Type of analysis, one of: {invocation-only}.")
     ("cost-exec-mu",
-     po::value<double>(&myCost.theCostExecMu)->default_value(1),
+     po::value<double>(&myCostModel.theCostExecMu)->default_value(1),
      "Cost of executing a single invocation as microservice.")
     ("cost-exec-lambda",
-     po::value<double>(&myCost.theCostExecLambda)->default_value(10),
+     po::value<double>(&myCostModel.theCostExecLambda)->default_value(10),
      "Cost of executing a single invocation as stateless function.")
     ("cost-warm-mu",
-     po::value<double>(&myCost.theCostWarmMu)->default_value(0.001),
+     po::value<double>(&myCostModel.theCostWarmMu)->default_value(0.001),
      "Cost of keeping a function warm as microservice.")
     ("cost-warm-lambda",
-     po::value<double>(&myCost.theCostWarmLambda)->default_value(0),
+     po::value<double>(&myCostModel.theCostWarmLambda)->default_value(0),
      "Cost of keeping a function warm as stateless function.")
     ("cost-migrate-mu",
-     po::value<double>(&myCost.theCostMigrateMu)->default_value(5),
+     po::value<double>(&myCostModel.theCostMigrateMu)->default_value(5),
      "Cost of migrating from stateless to microservice.")
     ("cost-migrate-lambda",
-     po::value<double>(&myCost.theCostMigrateLambda)->default_value(5),
+     po::value<double>(&myCostModel.theCostMigrateLambda)->default_value(5),
      "Cost of migrating from microservice to stateless")
     ;
   // clang-format on
@@ -119,8 +115,8 @@ int main(int argc, char* argv[]) {
       return EXIT_SUCCESS;
     }
 
-    if (myKey.empty()) {
-      throw std::runtime_error("Empty value for --key");
+    if (myDatasetFilename.empty()) {
+      throw std::runtime_error("Empty input filename");
       return EXIT_FAILURE;
     }
 
@@ -135,11 +131,21 @@ int main(int argc, char* argv[]) {
     VLOG(1) << "analyzing dataset";
     if (myAnalysis == "invocation-only") {
       std::ofstream mySummaryStream(
-          (boost::filesystem::path(myOutputDir) / (myKey + "-cost.dat"))
+          (boost::filesystem::path(myOutputDir) /
+           (boost::filesystem::path(myDatasetFilename).filename().string() +
+            "-cost.dat"))
               .string(),
           myVarMap.count("append") ? std::ios::app : std::ios::trunc);
-      mySummaryStream << "always-mu," << myCost.toString() << ','
-                      << cost(myDataset, ud::ExecMode::AlwaysMu) << '\n';
+      const auto myCosts = cost(myDataset, myCostModel);
+      for (const auto& myCost : myCosts) {
+        mySummaryStream << myCost.first << ',' << myCostModel.toString();
+        for (const auto& myExecMode : ud::allExecModes()) {
+          mySummaryStream
+              << ',' << ud::toString(myExecMode) << ','
+              << myCost.second[static_cast<unsigned int>(myExecMode)];
+        }
+        mySummaryStream << '\n';
+      }
 
     } else {
       throw std::runtime_error("Invalid type of analysis: " + myAnalysis);

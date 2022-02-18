@@ -40,7 +40,9 @@ SOFTWARE.
 #include <deque>
 #include <exception>
 #include <iostream>
+#include <list>
 #include <string>
+#include <unordered_map>
 
 namespace uiiit {
 namespace dataset {
@@ -81,13 +83,18 @@ std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader);
 /**
  * @brief How we assume functions will be invoked.
  */
-enum class ExecMode : int {
+enum class ExecMode : unsigned int {
   AlwaysMu     = 0, //!< microservices only
   AlwaysLambda = 1, //!< stateless functions only
   BestNext     = 2, //!< decide based on the next invocation
+  Size         = 3,
 };
 
-struct Cost {
+std::string toString(const ExecMode aExecMode);
+
+const std::list<ExecMode>& allExecModes();
+
+struct CostModel {
   double theCostExecMu        = 0;
   double theCostExecLambda    = 0;
   double theCostWarmMu        = 0;
@@ -98,7 +105,15 @@ struct Cost {
   std::string toString() const;
 };
 
-double cost(const std::deque<Row>& aDataset, const ExecMode aExecMode);
+/**
+ * @brief Compute the execution cost of function invocation with all modes.
+ *
+ * @param aDataset The input dataset.
+ * @param aCostModel The cost model.
+ * @return std::unordered_map<std::string, std::vector<double>>
+ */
+std::unordered_map<std::string, std::vector<double>>
+cost(const std::deque<Row>& aDataset, const CostModel& aCostModel);
 
 } // namespace dataset
 } // namespace uiiit

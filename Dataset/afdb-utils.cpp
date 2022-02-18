@@ -31,7 +31,9 @@ SOFTWARE.
 
 #include "Dataset/afdb-utils.h"
 
+#include <iterator>
 #include <sstream>
+#include <stdexcept>
 
 namespace uiiit {
 namespace dataset {
@@ -86,7 +88,27 @@ std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader) {
   return ret;
 }
 
-std::string Cost::toString() const {
+std::string toString(const ExecMode aExecMode) {
+  // clang-format off
+  switch (aExecMode) {
+    case ExecMode::AlwaysMu:     return "always-mu";
+    case ExecMode::AlwaysLambda: return "always-lambda";
+    case ExecMode::BestNext:     return "best-next";
+    default: throw std::runtime_error("unknown");
+  }
+  // clang-format on
+}
+
+const std::list<ExecMode>& allExecModes() {
+  static const std::list<ExecMode> myExecModes({
+      ExecMode::AlwaysMu,
+      ExecMode::AlwaysLambda,
+      ExecMode::BestNext,
+  });
+  return myExecModes;
+}
+
+std::string CostModel::toString() const {
   std::stringstream ret;
   ret << theCostExecMu << ',' << theCostExecLambda << ',' << theCostWarmMu
       << ',' << theCostWarmLambda << ',' << theCostMigrateMu << ','
@@ -95,9 +117,34 @@ std::string Cost::toString() const {
   return ret.str();
 }
 
-double cost(const std::deque<Row>& aDataset, const ExecMode aExecMode) {
-  LOG(INFO) << aDataset.size() << ' ' << static_cast<int>(aExecMode);
-  return 0;
+std::unordered_map<std::string, std::vector<double>>
+cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
+  // group the rows by key and store only the timestamps
+  std::unordered_map<std::string, std::deque<double>> myTimestamps;
+  for (const auto& myRow : aDataset) {
+    myTimestamps[myRow.key()].emplace_back(myRow.theTimestamp);
+  }
+
+  // compute the costs
+  std::unordered_map<std::string, std::vector<double>> ret;
+  for (const auto& elem : myTimestamps) {
+    auto& myCost =
+        ret.emplace(elem.first,
+                    std::vector<double>(
+                        static_cast<unsigned int>(ExecMode::Size), 0))
+            .first->second;
+    for (auto cur = elem.second.begin(); cur != elem.second.end(); ++cur) {
+      auto next = std::next(cur);
+      if (next == elem.second.end()) {
+        break;
+      }
+
+      myCost[static_cast<unsigned int>(ExecMode::AlwaysMu)] +=
+          aCostModel.theCostExecMu + aCostModel.theCostWarmMu * (*next - *cur);
+    }
+  }
+
+  return ret;
 }
 
 } // namespace dataset
