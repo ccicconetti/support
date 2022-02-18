@@ -36,6 +36,7 @@ SOFTWARE.
 #include "Dataset/afdb-utils.h"
 #include "Support/glograii.h"
 #include "Support/split.h"
+#include "Support/versionutils.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -163,6 +164,7 @@ int main(int argc, char* argv[]) {
   // clang-format off
   myDesc.add_options()
     ("help,h", "produce help message")
+    ("version,v", "print version and quit")
     ("input-dataset",
      po::value<std::string>(&myDatasetFilename)->default_value(""),
      "Input dataset file name.")
@@ -182,7 +184,12 @@ int main(int argc, char* argv[]) {
 
     if (myVarMap.count("help")) {
       std::cout << myDesc << std::endl;
-      return EXIT_FAILURE;
+      return EXIT_SUCCESS;
+    }
+
+    if (myVarMap.count("version")) {
+      std::cout << us::version() << std::endl;
+      return EXIT_SUCCESS;
     }
 
     VLOG(1) << "reading from: " << myDatasetFilename;
