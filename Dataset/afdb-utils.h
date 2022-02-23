@@ -99,6 +99,8 @@ allExecModes();
 struct CostModel {
   double theCostExecMu        = 0;
   double theCostExecLambda    = 0;
+  double theCostReadLambda    = 0;
+  double theCostWriteLambda   = 0;
   double theCostWarmMu        = 0;
   double theCostWarmLambda    = 0;
   double theCostMigrateMu     = 0;
@@ -125,7 +127,7 @@ struct CostOutput {
   double      theBestNextDurLambda = 0;
 
   // internal variables
-  Type theBestNextLastType = Type::Microservice;
+  Type theBestNextLastType = Type::Stateless;
 
   std::string                            toString() const;
   static const std::vector<std::string>& explain();

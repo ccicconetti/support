@@ -86,6 +86,12 @@ int main(int argc, char* argv[]) {
     ("cost-exec-lambda",
      po::value<double>(&myCostModel.theCostExecLambda)->default_value(10),
      "Cost of executing a single invocation as stateless function.")
+    ("cost-read-lambda",
+     po::value<double>(&myCostModel.theCostReadLambda)->default_value(1),
+     "Cost of executing a read operation in a stateless function.")
+    ("cost-write-lambda",
+     po::value<double>(&myCostModel.theCostWriteLambda)->default_value(5),
+     "Cost of executing a write operation in a stateless function.")
     ("cost-warm-mu",
      po::value<double>(&myCostModel.theCostWarmMu)->default_value(0.00015),
      "Cost of keeping a function warm as microservice.")

@@ -113,8 +113,9 @@ allExecModes() {
 
 std::string CostModel::toString() const {
   std::stringstream ret;
-  ret << theCostExecMu << ',' << theCostExecLambda << ',' << theCostWarmMu
-      << ',' << theCostWarmLambda << ',' << theCostMigrateMu << ','
+  ret << theCostExecMu << ',' << theCostExecLambda << ',' << theCostReadLambda
+      << ',' << theCostWriteLambda << ',' << theCostWarmMu << ','
+      << theCostWarmLambda << ',' << theCostMigrateMu << ','
       << theCostMigrateLambda;
 
   return ret.str();
@@ -124,6 +125,8 @@ const std::vector<std::string>& CostModel::explain() {
   static const std::vector<std::string> myExplain({
       "cost-exec-mu",
       "cost-exec-lambda",
+      "cost-read-lambda",
+      "cost-write-lambda",
       "cost-warm-mu",
       "cost-warm-lambda",
       "cost-migrate-mu",
@@ -163,12 +166,13 @@ const std::vector<std::string>& CostOutput::explain() {
 
 std::unordered_map<std::string, CostOutput>
 cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
-  const std::size_t myBestNextLookAhead = 100;
+  const std::size_t myBestNextLookAhead = 500;
 
-  // group the rows by key and store only the timestamps
-  std::unordered_map<std::string, std::deque<double>> myTimestamps;
+  // group the rows by key and store only the timestamps and read/write flags
+  std::unordered_map<std::string, std::deque<std::tuple<double, bool>>>
+      myTimestamps;
   for (const auto& myRow : aDataset) {
-    myTimestamps[myRow.key()].emplace_back(myRow.theTimestamp);
+    myTimestamps[myRow.key()].emplace_back(myRow.theTimestamp, myRow.theWrite);
   }
 
   // compute the costs
@@ -181,7 +185,7 @@ cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
         break;
       }
 
-      const auto myTimeToNext = *next - *cur;
+      const auto myTimeToNext = std::get<0>(*next) - std::get<0>(*cur);
       myOut.theDuration += myTimeToNext;
       myOut.theNumInvocations++;
 
@@ -192,7 +196,9 @@ cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
       // AlwaysLambda
       myOut.theCosts[static_cast<unsigned int>(ExecMode::AlwaysLambda)] +=
           aCostModel.theCostExecLambda +
-          aCostModel.theCostWarmLambda * myTimeToNext;
+          aCostModel.theCostWarmLambda * myTimeToNext +
+          (std::get<1>(*cur) ? aCostModel.theCostWriteLambda :
+                               aCostModel.theCostReadLambda);
 
       // BestNext
       auto& myBnCost =
@@ -219,18 +225,22 @@ cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
         assert(myOut.theBestNextLastType == CostOutput::Type::Stateless);
 
         auto myCostMu = aCostModel.theCostMigrateMu + aCostModel.theCostExecMu;
-        auto myCostLambda = aCostModel.theCostExecLambda;
-        auto myLast       = *cur;
-        std::size_t i     = 0;
+        auto myCostLambda = aCostModel.theCostExecLambda +
+                            (std::get<1>(*cur) ? aCostModel.theCostWriteLambda :
+                                                 aCostModel.theCostReadLambda);
+        auto        myLast = std::get<0>(*cur);
+        std::size_t i      = 0;
         for (auto it = next;
              it != elem.second.end() and i < myBestNextLookAhead;
              ++it, ++i) {
-          const auto myDuration = *it - myLast;
+          const auto myDuration = std::get<0>(*it) - myLast;
           myCostMu +=
               aCostModel.theCostExecMu + aCostModel.theCostWarmMu * myDuration;
           myCostLambda += aCostModel.theCostExecLambda +
+                          (std::get<1>(*it) ? aCostModel.theCostWriteLambda :
+                                              aCostModel.theCostReadLambda) +
                           aCostModel.theCostWarmLambda * myDuration;
-          myLast = *it;
+          myLast = std::get<0>(*it);
 
           if (myCostMu < myCostLambda) {
             break;
@@ -249,6 +259,8 @@ cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
           myOut.theBestNextNumLambda++;
           myOut.theBestNextDurLambda += myTimeToNext;
           myBnCost += aCostModel.theCostExecLambda +
+                      (std::get<1>(*cur) ? aCostModel.theCostWriteLambda :
+                                           aCostModel.theCostReadLambda) +
                       aCostModel.theCostWarmLambda * myTimeToNext;
         }
       }
