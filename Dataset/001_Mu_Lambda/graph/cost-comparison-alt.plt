@@ -47,7 +47,7 @@ unset raxis
 set theta counterclockwise right
 set style parallel front  lt black linewidth 2.000 dashtype solid
 set key title "" center
-set key fixed right bottom vertical Left noreverse enhanced autotitle nobox
+set key fixed left top vertical Right noreverse enhanced autotitle nobox
 set key noinvert samplen 4 spacing 1 width 0 height 0 
 set key maxcolumns 0 maxrows 0
 set key noopaque
@@ -105,7 +105,7 @@ set nomttics
 set xtics border in scale 1,0.5 mirror norotate  autojustify
 set xtics  norangelimit autofreq 
 set ytics border in scale 1,0.5 mirror norotate  autojustify
-set ytics  norangelimit autofreq 
+set ytics  norangelimit logscale autofreq 
 set ztics border in scale 1,0.5 nomirror norotate  autojustify
 set ztics  norangelimit autofreq 
 unset x2tics
@@ -123,17 +123,17 @@ set timestamp  font "" norotate
 set trange [ * : * ] noreverse nowriteback
 set urange [ * : * ] noreverse nowriteback
 set vrange [ * : * ] noreverse nowriteback
-set xlabel "Fraction of (number of invocations | duration) as {/Symbol m}" 
+set xlabel "Function ID (sorted by cost)" 
 set xlabel  font "" textcolor lt -1 norotate
 set x2label "" 
 set x2label  font "" textcolor lt -1 norotate
-set xrange [ * : * ] noreverse nowriteback
+set xrange [ * : 853 ] noreverse nowriteback
 set x2range [ * : * ] noreverse nowriteback
-set ylabel "CDF" 
+set ylabel "log(cost)" 
 set ylabel  font "" textcolor lt -1 rotate
 set y2label "" 
 set y2label  font "" textcolor lt -1 rotate
-set yrange [ * : * ] noreverse nowriteback
+set yrange [ 1 : 1e6 ] noreverse nowriteback
 set y2range [ * : * ] noreverse nowriteback
 set zlabel "" 
 set zlabel  font "" textcolor lt -1 norotate
@@ -145,6 +145,7 @@ set rlabel ""
 set rlabel  font "" textcolor lt -1 norotate
 set rrange [ * : * ] noreverse nowriteback
 unset logscale
+set logscale y 10
 unset jitter
 set zero 1e-08
 set lmargin  -1
@@ -166,8 +167,9 @@ set fontpath
 set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "wxt"
-## Last datafile plotted: "< ../ratio.py --sort --delim , --num 16 --den 9 < ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat"
-plot \
-'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 16 --den 12' u 1:(1) smooth cnorm title "Num invocations", \
-'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 18 --den 11' u 1:(1) smooth cnorm title "Duration"
+x = 0.0
+## Last datafile plotted: "<sort -g -k 13 -t , azurefunctions-accesses-2020-sorted.csv-cost.dat"
+plot '< grep "0,0.6,0.4,5,6.3e-06,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --col 12 --min 0 --delim , | sort -g -k 13 -t ,' u 0:13 w l title "{/Symbol m} only", \
+     '<grep "0,0.6,0.4,5,6.3e-06,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --col 12 --min 0 --delim , | sort -g -k 14 -t ,' u 0:14 w l title "{/Symbol l} only", \
+     '<grep "0,0.6,0.4,5,6.3e-06,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --col 12 --min 0 --delim , | sort -g -k 15 -t ,' u 0:15 w l lw 2 title "{/Symbol l + m}"
 #    EOF

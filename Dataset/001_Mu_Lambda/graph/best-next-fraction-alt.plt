@@ -168,6 +168,6 @@ set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap 
 GNUTERM = "wxt"
 ## Last datafile plotted: "< ../ratio.py --sort --delim , --num 16 --den 9 < ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat"
 plot \
-'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 16 --den 12' u 1:(1) smooth cnorm title "Num invocations", \
-'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 18 --den 11' u 1:(1) smooth cnorm title "Duration"
+'< grep "0,0.6,0.4,5,6.3e-06,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 16 --den 12' u 1:(1) smooth cnorm title "Num invocations", \
+'< grep "0,0.6,0.4,5,6.3e-06,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 18 --den 11' u 1:(1) smooth cnorm title "Duration"
 #    EOF

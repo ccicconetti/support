@@ -127,13 +127,13 @@ set xlabel "Function ID (sorted by cost)"
 set xlabel  font "" textcolor lt -1 norotate
 set x2label "" 
 set x2label  font "" textcolor lt -1 norotate
-set xrange [ * : * ] noreverse nowriteback
+set xrange [ * : 853 ] noreverse nowriteback
 set x2range [ * : * ] noreverse nowriteback
 set ylabel "log(cost)" 
 set ylabel  font "" textcolor lt -1 rotate
 set y2label "" 
 set y2label  font "" textcolor lt -1 rotate
-set yrange [ * : * ] noreverse nowriteback
+set yrange [ 1 : * ] noreverse nowriteback
 set y2range [ * : * ] noreverse nowriteback
 set zlabel "" 
 set zlabel  font "" textcolor lt -1 norotate
@@ -169,5 +169,7 @@ set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap 
 GNUTERM = "wxt"
 x = 0.0
 ## Last datafile plotted: "<sort -g -k 13 -t , azurefunctions-accesses-2020-sorted.csv-cost.dat"
-plot '<sort -g -k 13 -t , ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat' u 0:11 w l title "{/Symbol l} only", '' u 0:12 w l title "{/Symbol m} only", '' u 0:13 w l lw 2 title "{/Symbol l + m}"
+plot '< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --col 12 --min 0 --delim , | sort -g -k 13 -t ,' u 0:13 w l title "{/Symbol m} only", \
+     '<grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --col 12 --min 0 --delim , | sort -g -k 14 -t ,' u 0:14 w l title "{/Symbol l} only", \
+     '<grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --col 12 --min 0 --delim , | sort -g -k 15 -t ,' u 0:15 w l lw 2 title "{/Symbol l + m}"
 #    EOF

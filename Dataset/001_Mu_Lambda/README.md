@@ -41,23 +41,36 @@ Sort the dataset by timestamp:
 sort -n azurefunctions-accesses-2020.csv > azurefunctions-accesses-2020-sorted.csv
 ```
 
-Analyze the trace:
+Create a symbolic link of the executable file in the current directory:
 
 ```
-mkdir cost
-./afdb-cost --output-dir cost --input azurefunctions-accesses-2020-sorted.csv
+ln -s ../../release/Dataset/afdb-cost .
 ```
 
-This will produce the file `cost/azurefunctions-accesses-2020-sorted.csv-cost.dat`.
-The meaning of the columns is explained by:
+Analyze the trace with default cost values:
+
+```
+./afdb-cost --input azurefunctions-accesses-2020-sorted.csv
+```
+
+This will produce the file `azurefunctions-accesses-2020-sorted.csv-cost.dat`, where the meaning of the columns is explained by:
 
 ```
 ./afdb-cost --explain
 ```
 
-You can plot some statistics with, e.g.:
+## Reproduce experiments
+
+If you want to reproduce the results obtained in the paper execute:
+
+```
+./run.sh
+```
+
+This will produce the results in a newly created directory `cost/`.
+You can plot some statistics with Gnuplot:
 
 ```
 cd graph
-gnuplot -persist cost-comparison.plt
+for i in *.plt ; do gnuplot -persist $i ; done
 ```

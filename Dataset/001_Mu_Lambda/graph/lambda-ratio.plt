@@ -47,7 +47,7 @@ unset raxis
 set theta counterclockwise right
 set style parallel front  lt black linewidth 2.000 dashtype solid
 set key title "" center
-set key fixed right bottom vertical Left noreverse enhanced autotitle nobox
+set key fixed right bottom vertical Right noreverse enhanced autotitle nobox
 set key noinvert samplen 4 spacing 1 width 0 height 0 
 set key maxcolumns 0 maxrows 0
 set key noopaque
@@ -77,7 +77,7 @@ set surface
 unset contour
 set cntrlabel  format '%8.3g' font '' start 5 interval 20
 set mapping cartesian
-set datafile separator ","
+set datafile separator whitespace
 unset hidden3d
 set cntrparam order 4
 set cntrparam linear
@@ -123,11 +123,11 @@ set timestamp  font "" norotate
 set trange [ * : * ] noreverse nowriteback
 set urange [ * : * ] noreverse nowriteback
 set vrange [ * : * ] noreverse nowriteback
-set xlabel "Fraction of (number of invocations | duration) as {/Symbol m}" 
+set xlabel "Cost ratio" 
 set xlabel  font "" textcolor lt -1 norotate
 set x2label "" 
 set x2label  font "" textcolor lt -1 norotate
-set xrange [ * : * ] noreverse nowriteback
+set xrange [ 0.1 : * ] noreverse nowriteback
 set x2range [ * : * ] noreverse nowriteback
 set ylabel "CDF" 
 set ylabel  font "" textcolor lt -1 rotate
@@ -145,6 +145,7 @@ set rlabel ""
 set rlabel  font "" textcolor lt -1 norotate
 set rrange [ * : * ] noreverse nowriteback
 unset logscale
+set logscale x
 unset jitter
 set zero 1e-08
 set lmargin  -1
@@ -166,8 +167,8 @@ set fontpath
 set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "wxt"
-## Last datafile plotted: "< ../ratio.py --sort --delim , --num 16 --den 9 < ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat"
+## Last datafile plotted: "< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --num 15 --den 14 --delim , --sort"
 plot \
-'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 16 --den 12' u 1:(1) smooth cnorm title "Num invocations", \
-'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../ratio.py --sort --delim , --num 18 --den 11' u 1:(1) smooth cnorm title "Duration"
+'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --delim , --col 12 --min 0 | ../ratio.py --num 14 --den 15 --delim , --sort' u 1:(1) smooth cnorm title "({/Symbol l} only) / ({/Symbol l+m})",\
+'< grep "0,0.6,0.4,5,0.0063,0,12,12" ../cost/azurefunctions-accesses-2020-sorted.csv-cost.dat | ../min.py --delim , --col 12 --min 0 | ../ratio.py --num 13 --den 15 --delim , --sort' u 1:(1) smooth cnorm title "({/Symbol m} only) / ({/Symbol l+m})"
 #    EOF
