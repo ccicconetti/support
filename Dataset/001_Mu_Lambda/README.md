@@ -26,9 +26,7 @@ cmake -DCMAKE_BUILD_TYPE=release ../
 
 ## Analyze dataset
 
-azurefunctions-accesses-2020.csv
-
-Download and decompress the dataset:
+Download and decompress the dataset (5.1 GB):
 
 ```
 wget https://azurecloudpublicdataset2.blob.core.windows.net/azurepublicdatasetv2/azurefunctions_dataset2020/azurefunctions-accesses-2020.csv.bz2
