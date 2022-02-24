@@ -134,6 +134,21 @@ struct CostOutput {
 };
 
 /**
+ * @brief A subset of the dataset only including the timestamps and the
+ * read/write flag, grouped by key and sorted in chronological order.
+ */
+using TimestampDataset =
+    std::unordered_map<std::string, std::deque<std::tuple<double, bool>>>;
+
+/**
+ * @brief Convert a raw dataset to a timestamp dataset.
+ *
+ * @param aDataset The raw dataset.
+ * @return TimestampDataset
+ */
+TimestampDataset toTimestampDataset(const std::deque<Row>& aDataset);
+
+/**
  * @brief Compute the execution cost of function invocation with all modes.
  *
  * @param aDataset The input dataset.

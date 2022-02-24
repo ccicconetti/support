@@ -164,16 +164,19 @@ const std::vector<std::string>& CostOutput::explain() {
   return myExplain;
 }
 
+TimestampDataset toTimestampDataset(const std::deque<Row>& aDataset) {
+  TimestampDataset ret;
+  for (const auto& myRow : aDataset) {
+    ret[myRow.key()].emplace_back(myRow.theTimestamp, myRow.theWrite);
+  }
+  return ret;
+}
+
 std::unordered_map<std::string, CostOutput>
 cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
   const std::size_t myBestNextLookAhead = 500;
 
-  // group the rows by key and store only the timestamps and read/write flags
-  std::unordered_map<std::string, std::deque<std::tuple<double, bool>>>
-      myTimestamps;
-  for (const auto& myRow : aDataset) {
-    myTimestamps[myRow.key()].emplace_back(myRow.theTimestamp, myRow.theWrite);
-  }
+  const auto myTimestamps = toTimestampDataset(aDataset);
 
   // compute the costs
   std::unordered_map<std::string, CostOutput> ret;
