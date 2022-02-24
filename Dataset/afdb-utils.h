@@ -149,6 +149,23 @@ using TimestampDataset =
 TimestampDataset toTimestampDataset(const std::deque<Row>& aDataset);
 
 /**
+ * @brief Load a timestamp dataset from file.
+ *
+ * @param aFilename The name of the file to load the dataset from.
+ * @return TimestampDataset
+ */
+TimestampDataset loadTimestampDataset(const std::string& aFilename);
+
+/**
+ * @brief Load a timestamp dataset from file.
+ *
+ * @param aFilename The name of the file to load the dataset from.
+ * @return TimestampDataset
+ */
+void saveTimestampDataset(const TimestampDataset& aDataset,
+                          const std::string&      aFilename);
+
+/**
  * @brief Compute the execution cost of function invocation with all modes.
  *
  * @param aDataset The input dataset.

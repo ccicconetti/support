@@ -32,12 +32,15 @@ SOFTWARE.
 #include "Dataset/afdb-utils.h"
 
 #include <cassert>
+#include <fstream>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
 
 namespace uiiit {
 namespace dataset {
+
+const std::size_t theTimestampDatasetVersion = 1;
 
 Row::Row(const std::string& aRow) {
   auto myTokens = support::split<std::vector<std::string>>(aRow, ",");
@@ -170,6 +173,95 @@ TimestampDataset toTimestampDataset(const std::deque<Row>& aDataset) {
     ret[myRow.key()].emplace_back(myRow.theTimestamp, myRow.theWrite);
   }
   return ret;
+}
+
+struct EndOfStream final : public std::runtime_error {
+  explicit EndOfStream()
+      : std::runtime_error("EOF") {
+    // noop
+  }
+};
+
+template <typename T>
+void readFromFile(std::istream& aStream, T& aValue) {
+  aStream.read(reinterpret_cast<char*>(&aValue), sizeof(aValue));
+  if (not aStream) {
+    throw EndOfStream();
+  }
+}
+
+TimestampDataset loadTimestampDataset(const std::string& aFilename) {
+  std::ifstream myInfile(aFilename);
+  if (not myInfile) {
+    throw std::runtime_error("Could not open file for reading: " + aFilename);
+  }
+  TimestampDataset ret;
+
+  // load version number
+  std::size_t myVersion;
+  readFromFile(myInfile, myVersion);
+  if (myVersion != theTimestampDatasetVersion) {
+    throw std::runtime_error("Invalid file version: expecting " +
+                             std::to_string(theTimestampDatasetVersion) +
+                             ", found " + std::to_string(myVersion));
+  }
+
+  try {
+    std::size_t myLength;
+    double      myTimestamp;
+    bool        myWriteFlag;
+    while (true) {
+      // read length, then the key
+      readFromFile(myInfile, myLength);
+      std::string myKey(myLength, 0);
+      myInfile.read(myKey.data(), myLength);
+
+      // read the number of elements, then all the elements
+      readFromFile(myInfile, myLength);
+      auto myNewElem =
+          ret.emplace(myKey, std::deque<std::tuple<double, bool>>());
+      assert(myNewElem.second == true);
+      for (std::size_t i = 0; i < myLength; i++) {
+        readFromFile(myInfile, myTimestamp);
+        readFromFile(myInfile, myWriteFlag);
+        myNewElem.first->second.emplace_back(myTimestamp, myWriteFlag);
+      }
+    }
+  } catch (const EndOfStream&) {
+    // ignore
+  }
+
+  return ret;
+}
+
+void saveTimestampDataset(const TimestampDataset& aDataset,
+                          const std::string&      aFilename) {
+  std::ofstream myOutfile(aFilename);
+  if (not myOutfile) {
+    throw std::runtime_error("Could not open file for writing: " + aFilename);
+  }
+
+  // write version number
+  myOutfile.write(reinterpret_cast<const char*>(&theTimestampDatasetVersion),
+                  sizeof(std::size_t));
+
+  std::size_t myLength;
+  for (const auto& myApp : aDataset) {
+    // write size of the key, then the key
+    myLength = myApp.first.size();
+    myOutfile.write(reinterpret_cast<const char*>(&myLength), sizeof(myLength));
+    myOutfile.write(myApp.first.data(), myLength);
+
+    // write then number of elements, then all the elements
+    myLength = myApp.second.size();
+    myOutfile.write(reinterpret_cast<const char*>(&myLength), sizeof(myLength));
+    for (const auto& elem : myApp.second) {
+      myOutfile.write(reinterpret_cast<const char*>(&std::get<0>(elem)),
+                      sizeof(std::get<0>(elem)));
+      myOutfile.write(reinterpret_cast<const char*>(&std::get<1>(elem)),
+                      sizeof(std::get<1>(elem)));
+    }
+  }
 }
 
 std::unordered_map<std::string, CostOutput>

@@ -17,6 +17,17 @@ target_link_libraries(afdb
   ${Boost_LIBRARIES}
 )
 
+add_executable(afdb-convert
+  ${CMAKE_CURRENT_SOURCE_DIR}/afdb-convert.cpp
+)
+
+target_link_libraries(afdb-convert
+  uiiitdataset
+  uiiitsupport
+  ${GLOG}
+  ${Boost_LIBRARIES}
+)
+
 add_executable(afdb-cost
   ${CMAKE_CURRENT_SOURCE_DIR}/afdb-cost.cpp
 )
