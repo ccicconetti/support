@@ -265,13 +265,38 @@ void saveTimestampDataset(const TimestampDataset& aDataset,
 }
 
 std::unordered_map<std::string, CostOutput>
-cost(const TimestampDataset& aDataset, const CostModel& aCostModel) {
+cost(const TimestampDataset& aDataset,
+     const CostModel&        aCostModel,
+     const bool              aSaveBnPeriods) {
   const std::size_t myBestNextLookAhead = 500;
+
+  struct PeriodSaver {
+    PeriodSaver(CostOutput& aCost, const bool aSave)
+        : theCost(aCost)
+        , theSave(aSave)
+        , theAcc(0) {
+      // noop
+    }
+    void remain(const double aPeriod) {
+      theAcc += aPeriod;
+    }
+    void migrate(const double aPeriod) {
+      if (theSave) {
+        theCost.theBestNextPeriods.emplace_back(theAcc);
+      }
+      theAcc = aPeriod;
+    }
+
+    CostOutput& theCost;
+    const bool  theSave;
+    double      theAcc;
+  };
 
   // compute the costs
   std::unordered_map<std::string, CostOutput> ret;
   for (const auto& elem : aDataset) {
-    auto& myOut = ret.emplace(elem.first, CostOutput()).first->second;
+    auto&       myOut = ret.emplace(elem.first, CostOutput()).first->second;
+    PeriodSaver myPeriodSaver(myOut, aSaveBnPeriods);
     for (auto cur = elem.second.begin(); cur != elem.second.end(); ++cur) {
       auto next = std::next(cur);
       if (next == elem.second.end()) {
@@ -304,12 +329,14 @@ cost(const TimestampDataset& aDataset, const CostModel& aCostModel) {
             (aCostModel.theCostMigrateLambda +
              aCostModel.theCostWarmLambda * myTimeToNext)) {
           // migrate from microservice to stateless
+          myPeriodSaver.migrate(myTimeToNext);
           myOut.theBestNextLastType = CostOutput::Type::Stateless;
           myOut.theBestNextDurLambda += myTimeToNext;
           myBnCost += aCostModel.theCostMigrateLambda +
                       aCostModel.theCostWarmLambda * myTimeToNext;
 
         } else {
+          myPeriodSaver.remain(myTimeToNext);
           myOut.theBestNextDurMu += myTimeToNext;
           myBnCost += aCostModel.theCostWarmMu * myTimeToNext;
         }
@@ -342,6 +369,7 @@ cost(const TimestampDataset& aDataset, const CostModel& aCostModel) {
 
         if (myCostMu < myCostLambda) {
           // migrate from stateless to microservice
+          myPeriodSaver.migrate(myTimeToNext);
           myOut.theBestNextLastType = CostOutput::Type::Microservice;
           myOut.theBestNextNumMu++;
           myOut.theBestNextDurMu += myTimeToNext;
@@ -349,6 +377,7 @@ cost(const TimestampDataset& aDataset, const CostModel& aCostModel) {
                       aCostModel.theCostWarmMu * myTimeToNext;
 
         } else {
+          myPeriodSaver.remain(myTimeToNext);
           myOut.theBestNextNumLambda++;
           myOut.theBestNextDurLambda += myTimeToNext;
           myBnCost += aCostModel.theCostExecLambda +

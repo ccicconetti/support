@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
     ("help,h", "Produce help message")
     ("version,v", "Print version and quit")
     ("explain", "Show the meaning of the columns in the output file")
+
     ("input-dataset",
      po::value<std::string>(&myDatasetFilename)->default_value(""),
      "Input dataset file name.")
@@ -79,7 +80,7 @@ int main(int argc, char* argv[]) {
     ("append", "Append to the output file instead of overwriting.")
     ("analysis",
      po::value<std::string>(&myAnalysis)->default_value("invocation-only"),
-     "Type of analysis, one of: {invocation-only}.")
+     "Type of analysis, one of: {invocation-only, dump-periods}.")
     ("cost-exec-mu",
      po::value<double>(&myCostModel.theCostExecMu)->default_value(1),
      "Cost of executing a single invocation as microservice.")
@@ -157,10 +158,25 @@ int main(int argc, char* argv[]) {
           myVarMap.count("append") ? std::ios::app : std::ios::trunc);
 
       const auto myCosts =
-          ud::cost(ud::toTimestampDataset(myDataset), myCostModel);
+          ud::cost(ud::toTimestampDataset(myDataset), myCostModel, false);
       for (const auto& myCost : myCosts) {
         mySummaryStream << myCost.first << ',' << myCostModel.toString() << ','
                         << myCost.second.toString() << '\n';
+      }
+
+    } else if (myAnalysis == "dump-periods") {
+      const auto myCosts =
+          ud::cost(ud::toTimestampDataset(myDataset), myCostModel, true);
+      for (const auto& myCost : myCosts) {
+        if (myCost.second.theBestNextPeriods.empty()) {
+          continue;
+        }
+        std::ofstream myPeriodStream(
+            (boost::filesystem::path(myOutputDir) / (myCost.first + ".dat"))
+                .string());
+        for (const auto& myPeriod : myCost.second.theBestNextPeriods) {
+          myPeriodStream << myPeriod << '\n';
+        }
       }
 
     } else {

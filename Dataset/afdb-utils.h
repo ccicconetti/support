@@ -129,6 +129,10 @@ struct CostOutput {
   // internal variables
   Type theBestNextLastType = Type::Stateless;
 
+  // durations of the alternating periods with best-next, starting with the
+  // default value of theBestNextLastType
+  std::deque<double> theBestNextPeriods;
+
   std::string                            toString() const;
   static const std::vector<std::string>& explain();
 };
@@ -170,10 +174,13 @@ void saveTimestampDataset(const TimestampDataset& aDataset,
  *
  * @param aDataset The input dataset.
  * @param aCostModel The cost model.
+ * @param aSaveBnPeriods If true also save the alternating best-next periods.
  * @return The performance metrics, one per key.
  */
 std::unordered_map<std::string, CostOutput>
-cost(const TimestampDataset& aDataset, const CostModel& aCostModel);
+cost(const TimestampDataset& aDataset,
+     const CostModel&        aCostModel,
+     const bool              aSaveBnPeriods);
 
 } // namespace dataset
 } // namespace uiiit
