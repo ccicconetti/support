@@ -173,7 +173,7 @@ void saveTimestampDataset(const TimestampDataset& aDataset,
  * @return The performance metrics, one per key.
  */
 std::unordered_map<std::string, CostOutput>
-cost(const std::deque<Row>& aDataset, const CostModel& aCostModel);
+cost(const TimestampDataset& aDataset, const CostModel& aCostModel);
 
 } // namespace dataset
 } // namespace uiiit

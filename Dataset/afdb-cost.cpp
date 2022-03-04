@@ -155,7 +155,9 @@ int main(int argc, char* argv[]) {
             "-cost.dat"))
               .string(),
           myVarMap.count("append") ? std::ios::app : std::ios::trunc);
-      const auto myCosts = cost(myDataset, myCostModel);
+
+      const auto myCosts =
+          ud::cost(ud::toTimestampDataset(myDataset), myCostModel);
       for (const auto& myCost : myCosts) {
         mySummaryStream << myCost.first << ',' << myCostModel.toString() << ','
                         << myCost.second.toString() << '\n';

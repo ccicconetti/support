@@ -265,14 +265,12 @@ void saveTimestampDataset(const TimestampDataset& aDataset,
 }
 
 std::unordered_map<std::string, CostOutput>
-cost(const std::deque<Row>& aDataset, const CostModel& aCostModel) {
+cost(const TimestampDataset& aDataset, const CostModel& aCostModel) {
   const std::size_t myBestNextLookAhead = 500;
-
-  const auto myTimestamps = toTimestampDataset(aDataset);
 
   // compute the costs
   std::unordered_map<std::string, CostOutput> ret;
-  for (const auto& elem : myTimestamps) {
+  for (const auto& elem : aDataset) {
     auto& myOut = ret.emplace(elem.first, CostOutput()).first->second;
     for (auto cur = elem.second.begin(); cur != elem.second.end(); ++cur) {
       auto next = std::next(cur);
