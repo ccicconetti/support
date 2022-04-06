@@ -104,7 +104,9 @@ class SummaryWeightedStat
  private:
   const double&                        theClock;
   const double                         theWarmUp;
-  double                               theLast;
+  double                               theLastClock;
+  double                               theLastValue;
+  bool                                 theInitialized;
   std::shared_ptr<WeightedAccumulator> theAcc; // could be unique_ptr
 };
 

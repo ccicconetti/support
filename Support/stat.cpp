@@ -37,6 +37,8 @@ SOFTWARE.
 #include <boost/accumulators/statistics/variance.hpp>
 #include <boost/accumulators/statistics/weighted_mean.hpp>
 
+#include <cassert>
+
 namespace bacc = boost::accumulators;
 
 namespace uiiit {
@@ -112,16 +114,23 @@ SummaryWeightedStat::SummaryWeightedStat(const double& aClock,
                                          const double  aWarmUp)
     : theClock(aClock)
     , theWarmUp(aWarmUp)
-    , theLast(0)
+    , theLastClock(0)
+    , theLastValue(0)
+    , theInitialized(false)
     , theAcc(new WeightedAccumulator()) {
   // noop
 }
 
 void SummaryWeightedStat::operator()(const double aValue) {
-  if (theClock >= theWarmUp) {
-    theAcc->theObj(aValue, bacc::weight = (theClock - theLast));
-    theLast = theClock;
+  if (theInitialized and theClock >= theWarmUp) {
+    assert(theClock >= std::max(theLastClock, theWarmUp));
+    theAcc->theObj(theLastValue,
+                   bacc::weight =
+                       (theClock - std::max(theLastClock, theWarmUp)));
   }
+  theInitialized = true;
+  theLastClock   = theClock;
+  theLastValue   = aValue;
 }
 
 double SummaryWeightedStat::mean() {

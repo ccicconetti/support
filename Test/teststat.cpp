@@ -86,30 +86,18 @@ TEST_F(TestStat, test_summary_weighted_stat) {
   double              myClock = 0;
   SummaryWeightedStat myStat(myClock, 100);
 
-  myStat(1);
-  myClock = 50;
-  myStat(2);
-  myClock = 99.9;
-  myStat(3);
-
   ASSERT_EQ(0, myStat.count());
   ASSERT_TRUE(std::isnan(myStat.mean()));
 
-  myClock = 100;
-  myStat(1);
-  myClock = 1100;
+  myClock = 80;
   myStat(2);
-  myClock = 1200;
-  myStat(3);
+  myClock = 120;
+  myStat(4);
+  myClock = 200;
+  myStat(2);
 
-  ASSERT_EQ(3, myStat.count());
-  ASSERT_FLOAT_EQ(2, myStat.mean());
-
-  myClock = 2200;
-  myStat(10);
-
-  ASSERT_EQ(4, myStat.count());
-  ASSERT_FLOAT_EQ((1 * 100 + 2 * 1000 + 3 * 100 + 10 * 1000) / 2200.0,
+  ASSERT_EQ(2, myStat.count());
+  ASSERT_FLOAT_EQ((((120 - 100) * 2 + (200 - 120) * 4)) / (200.0 - 100),
                   myStat.mean());
 }
 
