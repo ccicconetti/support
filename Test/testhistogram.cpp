@@ -70,7 +70,7 @@ TEST_F(TestHistogram, test_underflow_overflow_throw) {
 }
 
 TEST_F(TestHistogram, test_operations) {
-  const size_t N = 100000;
+  const size_t N = 1000000;
   Histogram    myHisto(100, 10, 5, Histogram::KEEP);
 
   std::default_random_engine                      myGenerator;
