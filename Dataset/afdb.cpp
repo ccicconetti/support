@@ -33,8 +33,10 @@ SOFTWARE.
 // https://github.com/Azure/AzurePublicDataset/blob/master/AzureFunctionsBlobDataset2020.md
 //
 
+#include "Dataset/afdb-utils.h"
 #include "Support/glograii.h"
 #include "Support/split.h"
+#include "Support/versionutils.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -54,73 +56,7 @@ SOFTWARE.
 
 namespace po = boost::program_options;
 namespace us = uiiit::support;
-
-struct Row {
-  Row(const std::string& aRow) {
-    auto myTokens = us::split<std::vector<std::string>>(aRow, ",");
-    if (myTokens.size() != 11) {
-      throw std::runtime_error("Wrong number of elements in row: " + aRow);
-    }
-    theTimestamp = std::stod(myTokens[0]);
-    theRegion.swap(myTokens[1]);
-    theUser.swap(myTokens[2]);
-    theApp.swap(myTokens[3]);
-    theFunction.swap(myTokens[4]);
-    theBlob.swap(myTokens[5]);
-    theBlobType.swap(myTokens[6]);
-    theBlobVersion.swap(myTokens[7]);
-    theBlobSize = std::stoull(myTokens[8]);
-    if (myTokens[9] == "True" and myTokens[10].size() >= 5 and
-        myTokens[10].substr(0, 5) == "False") {
-      theWrite = false;
-    } else if (myTokens[9] == "False" and myTokens[10].size() >= 4 and
-               myTokens[10].substr(0, 4) == "True") {
-      theWrite = true;
-    } else {
-      throw std::runtime_error("Invalid read/write flags in row: " + aRow);
-    }
-  }
-
-  std::string key() const {
-    return theUser + "," + theApp;
-  }
-
-  double      theTimestamp;
-  std::string theRegion;
-  std::string theUser;
-  std::string theApp;
-  std::string theFunction;
-  std::string theBlob;
-  std::string theBlobType;
-  std::string theBlobVersion;
-  std::size_t theBlobSize;
-  bool        theWrite;
-};
-
-std::deque<Row> loadDataset(std::istream& aStream, const bool aWithHeader) {
-  std::size_t myRowId = 0;
-  std::string myLine;
-  if (aWithHeader) {
-    std::getline(aStream, myLine);
-  }
-  if (myLine.empty()) {
-    throw std::runtime_error("Invalid empty header");
-  }
-  std::deque<Row> ret;
-  while (aStream) {
-    ++myRowId;
-    try {
-      std::getline(aStream, myLine);
-      if (myLine.empty()) {
-        break;
-      }
-      ret.emplace_back(Row(myLine));
-    } catch (const std::exception& aErr) {
-      LOG(ERROR) << "error reading line " << myRowId << ": " << aErr.what();
-    }
-  }
-  return ret;
-}
+namespace ud = uiiit::dataset;
 
 struct Period {
   std::vector<double>      theReadDurations;
@@ -130,7 +66,7 @@ struct Period {
 };
 
 std::size_t
-readWritePeriods(const std::deque<Row>&                   aDataset,
+readWritePeriods(const std::deque<ud::Row>&               aDataset,
                  std::unordered_map<std::string, Period>& aPeriods) {
   // largest vector
   std::size_t ret = 0;
@@ -201,7 +137,7 @@ void savePeriods(std::unordered_map<std::string, Period>& aPeriods,
   }
 }
 
-void saveNumInvocations(const std::deque<Row>&         aDataset,
+void saveNumInvocations(const std::deque<ud::Row>&     aDataset,
                         const boost::filesystem::path& aOutputPath) {
   std::unordered_map<std::string, std::size_t> myNumInvocations;
   for (const auto& myRow : aDataset) {
@@ -228,6 +164,7 @@ int main(int argc, char* argv[]) {
   // clang-format off
   myDesc.add_options()
     ("help,h", "produce help message")
+    ("version,v", "print version and quit")
     ("input-dataset",
      po::value<std::string>(&myDatasetFilename)->default_value(""),
      "Input dataset file name.")
@@ -247,7 +184,12 @@ int main(int argc, char* argv[]) {
 
     if (myVarMap.count("help")) {
       std::cout << myDesc << std::endl;
-      return EXIT_FAILURE;
+      return EXIT_SUCCESS;
+    }
+
+    if (myVarMap.count("version")) {
+      std::cout << us::version() << std::endl;
+      return EXIT_SUCCESS;
     }
 
     VLOG(1) << "reading from: " << myDatasetFilename;
@@ -256,7 +198,7 @@ int main(int argc, char* argv[]) {
       throw std::runtime_error("could not open dataset file for reading: " +
                                myDatasetFilename);
     }
-    auto myDataset = loadDataset(myDatasetStream, true);
+    auto myDataset = ud::loadDataset(myDatasetStream, true);
 
     VLOG(1) << "analyzing dataset";
     if (myAnalysis == "read-write-periods") {
