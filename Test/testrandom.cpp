@@ -158,5 +158,19 @@ TEST_F(TestRandom, test_sample) {
   ASSERT_EQ(myVector, myFound);
 }
 
+TEST_F(TestRandom, test_setrv) {
+  std::vector<double> myValues({0, 1, 3.14, -99});
+  SetRv               myRv(myValues, 42, 0, 0);
+
+  std::set<double> myFound;
+  for (size_t i = 0; i < 100; i++) {
+    myFound.emplace(myRv());
+  }
+
+  for (const auto& myValue : myValues) {
+    ASSERT_TRUE(myFound.count(myValue) == 1);
+  }
+}
+
 } // namespace support
 } // namespace uiiit

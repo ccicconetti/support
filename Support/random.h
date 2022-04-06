@@ -197,6 +197,29 @@ CONTAINER sample(const CONTAINER&  aContainer,
   return ret;
 }
 
+template <typename CONTAINER>
+class SetRv : public GenericRv, public RealRvInterface
+{
+ public:
+  explicit SetRv(const CONTAINER& aValues,
+                 const size_t     a,
+                 const size_t     b,
+                 const size_t     c)
+      : GenericRv(a, b, c)
+      , theValues(aValues)
+      , theUniformRv(0, 1, a, b, c) {
+    // noop
+  }
+
+  double operator()() override {
+    return choice(theValues, theUniformRv);
+  }
+
+ private:
+  CONTAINER theValues;
+  UniformRv theUniformRv;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class TYPE>
