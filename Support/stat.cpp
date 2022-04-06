@@ -35,35 +35,31 @@ SOFTWARE.
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
+#include <boost/accumulators/statistics/weighted_mean.hpp>
 
 namespace bacc = boost::accumulators;
 
 namespace uiiit {
 namespace support {
 
-class Accumulator final
-{
- public:
+struct Accumulator final {
   Accumulator()
       : theObj() {
   }
 
-  ~Accumulator() {}
+  ~Accumulator() {
+  }
 
-  boost::accumulators::accumulator_set<
-      SummaryStat::Real,
-      boost::accumulators::stats<boost::accumulators::tag::mean,
-                                 boost::accumulators::tag::variance,
-                                 boost::accumulators::tag::min,
-                                 boost::accumulators::tag::max>>
+  bacc::accumulator_set<SummaryStat::Real,
+                        bacc::stats<bacc::tag::mean,
+                                    bacc::tag::variance,
+                                    bacc::tag::min,
+                                    bacc::tag::max>>
       theObj;
 };
 
 SummaryStat::SummaryStat()
     : theAcc(new Accumulator()) {
-}
-
-SummaryStat::~SummaryStat() {
 }
 
 void SummaryStat::operator()(const Real aValue) {
@@ -96,6 +92,44 @@ size_t SummaryStat::count() const {
 
 SummaryStat::Real SummaryStat::stddev() const {
   return sqrt(bacc::variance(theAcc->theObj));
+}
+
+struct WeightedAccumulator final {
+  WeightedAccumulator()
+      : theObj() {
+  }
+
+  ~WeightedAccumulator() {
+  }
+
+  bacc::accumulator_set<double,
+                        bacc::stats<bacc::tag::weighted_mean, bacc::tag::count>,
+                        double>
+      theObj;
+};
+
+SummaryWeightedStat::SummaryWeightedStat(const double& aClock,
+                                         const double  aWarmUp)
+    : theClock(aClock)
+    , theWarmUp(aWarmUp)
+    , theLast(0)
+    , theAcc(new WeightedAccumulator()) {
+  // noop
+}
+
+void SummaryWeightedStat::operator()(const double aValue) {
+  if (theClock >= theWarmUp) {
+    theAcc->theObj(aValue, bacc::weight = (theClock - theLast));
+    theLast = theClock;
+  }
+}
+
+double SummaryWeightedStat::mean() {
+  return bacc::weighted_mean(theAcc->theObj);
+}
+
+size_t SummaryWeightedStat::count() const {
+  return bacc::count(theAcc->theObj);
 }
 
 } // namespace support

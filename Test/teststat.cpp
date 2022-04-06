@@ -44,42 +44,73 @@ TEST_F(TestStat, test_summary_ctor) {
 
   SummaryStat myStat;
 
-  EXPECT_EQ(0u, myStat.count());
-  EXPECT_TRUE(std::isnan(myStat.mean()));
-  EXPECT_EQ(std::numeric_limits<double>::max(), myStat.min());
-  EXPECT_EQ(std::numeric_limits<double>::lowest(), myStat.max());
-  EXPECT_EQ(0u, myStat.stddev());
+  ASSERT_EQ(0u, myStat.count());
+  ASSERT_TRUE(std::isnan(myStat.mean()));
+  ASSERT_EQ(std::numeric_limits<double>::max(), myStat.min());
+  ASSERT_EQ(std::numeric_limits<double>::lowest(), myStat.max());
+  ASSERT_EQ(0u, myStat.stddev());
 }
 
 TEST_F(TestStat, test_summary_operations) {
   SummaryStat myStat;
 
-  EXPECT_TRUE(myStat.empty());
+  ASSERT_TRUE(myStat.empty());
 
   myStat(3.14);
 
-  EXPECT_FALSE(myStat.empty());
-  EXPECT_EQ(1u, myStat.count());
-  EXPECT_FLOAT_EQ(3.14, myStat.mean());
-  EXPECT_FLOAT_EQ(3.14, myStat.min());
-  EXPECT_FLOAT_EQ(3.14, myStat.max());
-  EXPECT_FLOAT_EQ(0u, myStat.stddev());
+  ASSERT_FALSE(myStat.empty());
+  ASSERT_EQ(1u, myStat.count());
+  ASSERT_FLOAT_EQ(3.14, myStat.mean());
+  ASSERT_FLOAT_EQ(3.14, myStat.min());
+  ASSERT_FLOAT_EQ(3.14, myStat.max());
+  ASSERT_FLOAT_EQ(0u, myStat.stddev());
 
   myStat.reset();
 
-  EXPECT_EQ(0u, myStat.count());
-  EXPECT_TRUE(myStat.empty());
+  ASSERT_EQ(0u, myStat.count());
+  ASSERT_TRUE(myStat.empty());
 
   for (int i = -100; i <= 100; i++) {
     myStat(i);
   }
 
-  EXPECT_FALSE(myStat.empty());
-  EXPECT_EQ(201u, myStat.count());
-  EXPECT_FLOAT_EQ(0, myStat.mean());
-  EXPECT_FLOAT_EQ(-100, myStat.min());
-  EXPECT_FLOAT_EQ(100, myStat.max());
-  EXPECT_FLOAT_EQ(58.022984, myStat.stddev());
+  ASSERT_FALSE(myStat.empty());
+  ASSERT_EQ(201u, myStat.count());
+  ASSERT_FLOAT_EQ(0, myStat.mean());
+  ASSERT_FLOAT_EQ(-100, myStat.min());
+  ASSERT_FLOAT_EQ(100, myStat.max());
+  ASSERT_FLOAT_EQ(58.022984, myStat.stddev());
+}
+
+TEST_F(TestStat, test_summary_weighted_stat) {
+  double              myClock = 0;
+  SummaryWeightedStat myStat(myClock, 100);
+
+  myStat(1);
+  myClock = 50;
+  myStat(2);
+  myClock = 99.9;
+  myStat(3);
+
+  ASSERT_EQ(0, myStat.count());
+  ASSERT_TRUE(std::isnan(myStat.mean()));
+
+  myClock = 100;
+  myStat(1);
+  myClock = 1100;
+  myStat(2);
+  myClock = 1200;
+  myStat(3);
+
+  ASSERT_EQ(3, myStat.count());
+  ASSERT_FLOAT_EQ(2, myStat.mean());
+
+  myClock = 2200;
+  myStat(10);
+
+  ASSERT_EQ(4, myStat.count());
+  ASSERT_FLOAT_EQ((1 * 100 + 2 * 1000 + 3 * 100 + 10 * 1000) / 2200.0,
+                  myStat.mean());
 }
 
 } // namespace support
