@@ -32,6 +32,7 @@ SOFTWARE.
 #include "Support/macros.h"
 
 #include <cassert>
+#include <numeric>
 #include <random>
 #include <set>
 #include <stdexcept>
@@ -196,6 +197,90 @@ CONTAINER sample(const CONTAINER&  aContainer,
 
   return ret;
 }
+
+/**
+ * @brief Return a sample of k (unique) elements from a container, with the
+ * probability of any given element proportional to its corresponding weight.
+ *
+ * @tparam CONTAINER The type of the container.
+ @ @tparam CONTAINER_WEIGHTS The type of the weights' container.
+ * @param aContainer The source container.
+ * @param aWeights The weights.
+ * @param aK The number of elements sampled.
+ * @param aRv A r.v. that generates number in [0,1].
+ * @return CONTAINER The elements sampled.
+ */
+template <typename CONTAINER, typename CONTAINER_WEIGHTS>
+CONTAINER sampleWeighted(const CONTAINER&         aContainer,
+                         const CONTAINER_WEIGHTS& aWeights,
+                         const std::size_t        aK,
+                         RealRvInterface&         aRv) {
+  if (aContainer.size() != aWeights.size()) {
+    throw std::runtime_error("container and weights must have the same size: " +
+                             std::to_string(aContainer.size()) + " vs " +
+                             std::to_string(aWeights.size()));
+  }
+
+  CONTAINER ret;
+  if (aContainer.size() <= aK) {
+    std::copy(
+        aContainer.begin(), aContainer.end(), std::inserter(ret, ret.begin()));
+
+  } else {
+    double mySum = std::accumulate(aWeights.begin(), aWeights.end(), 0.0);
+    std::set<typename CONTAINER::const_iterator> myFound;
+    for (std::size_t i = 0; i < aK; i++) {
+      const auto myRnd = aRv() * mySum;
+      assert(myRnd >= 0 and myRnd <= mySum);
+      auto it    = aContainer.begin();
+      auto jt    = aWeights.begin();
+      auto myCur = 0.0;
+      for (; it != aContainer.end(); ++it, ++jt) {
+        assert(jt != aWeights.end());
+        if (myFound.find(it) != myFound.end()) {
+          // skip the weight of elements already found
+          continue;
+        }
+        myCur += *jt;
+        if (myRnd <= myCur) {
+          myFound.emplace(it);
+          mySum -= *jt;
+          break;
+        }
+      }
+      assert(it != aContainer.end());
+    }
+    assert(myFound.size() == aK);
+    while (not myFound.empty()) {
+      ret.insert(ret.begin(), *myFound.extract(myFound.begin()).value());
+    }
+  }
+
+  return ret;
+}
+
+template <typename CONTAINER>
+class SetRv : public GenericRv, public RealRvInterface
+{
+ public:
+  explicit SetRv(const CONTAINER& aValues,
+                 const size_t     a,
+                 const size_t     b,
+                 const size_t     c)
+      : GenericRv(a, b, c)
+      , theValues(aValues)
+      , theUniformRv(0, 1, a, b, c) {
+    // noop
+  }
+
+  double operator()() override {
+    return choice(theValues, theUniformRv);
+  }
+
+ private:
+  CONTAINER theValues;
+  UniformRv theUniformRv;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 

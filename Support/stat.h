@@ -36,7 +36,8 @@ SOFTWARE.
 namespace uiiit {
 namespace support {
 
-class Accumulator;
+struct Accumulator;
+struct WeightedAccumulator;
 
 class SummaryStat final
 {
@@ -47,7 +48,7 @@ class SummaryStat final
 
  public:
   explicit SummaryStat();
-  ~SummaryStat();
+  ~SummaryStat() = default;
 
   //! Add a new value.
   void operator()(const Real aValue);
@@ -76,6 +77,37 @@ class SummaryStat final
 
  private:
   std::shared_ptr<Accumulator> theAcc; // could be unique_ptr
+};
+
+class SummaryWeightedStat
+{
+ public:
+  /**
+   * @brief Construct a new weighted accumulator object and link it to a given
+   * clock.
+   *
+   * @param aClock the external clock, which exists until this object is alive
+   * @param aWarmUp the initial warm-up period in which samples are discarded
+   */
+  explicit SummaryWeightedStat(const double& aClock, const double aWarmUp);
+  ~SummaryWeightedStat() = default;
+
+  //! add a new value with weight given by the clock
+  void operator()(const double aValue);
+
+  //! @return the weighted mean
+  double mean();
+
+  //! @return the number of samples added
+  size_t count() const;
+
+ private:
+  const double&                        theClock;
+  const double                         theWarmUp;
+  double                               theLastClock;
+  double                               theLastValue;
+  bool                                 theInitialized;
+  std::shared_ptr<WeightedAccumulator> theAcc; // could be unique_ptr
 };
 
 } // namespace support

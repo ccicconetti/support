@@ -158,5 +158,48 @@ TEST_F(TestRandom, test_sample) {
   ASSERT_EQ(myVector, myFound);
 }
 
+TEST_F(TestRandom, test_sample_weighted) {
+  UniformRv myRv(0, 1, 0, 0, 0);
+
+  std::vector<std::string> myVector({"mickey", "goofy", "minnie", "donald"});
+  std::vector<double>      myWeights({1, 2, 3, 4});
+
+  ASSERT_THROW(sampleWeighted(myVector, std::list<double>({1}), 1, myRv),
+               std::runtime_error);
+
+  ASSERT_EQ(1, sampleWeighted(myVector, myWeights, 1, myRv).size());
+  ASSERT_EQ(2, sampleWeighted(myVector, myWeights, 2, myRv).size());
+  ASSERT_EQ(3, sampleWeighted(myVector, myWeights, 3, myRv).size());
+  ASSERT_EQ(myVector, sampleWeighted(myVector, myWeights, 4, myRv));
+  ASSERT_EQ(myVector, sampleWeighted(myVector, myWeights, 99, myRv));
+
+  std::map<std::string, int> myFound;
+  for (size_t i = 0; i < 100000; i++) {
+    const auto mySample = sampleWeighted(myVector, myWeights, 1, myRv);
+    ASSERT_EQ(1, mySample.size());
+    for (const auto& elem : mySample) {
+      myFound[elem]++;
+    }
+  }
+  ASSERT_EQ(4, myFound.size());
+  EXPECT_NEAR(2, 1.0 * myFound["goofy"] / myFound["mickey"], 0.25);
+  EXPECT_NEAR(3, 1.0 * myFound["minnie"] / myFound["mickey"], 0.25);
+  EXPECT_NEAR(4, 1.0 * myFound["donald"] / myFound["mickey"], 0.25);
+}
+
+TEST_F(TestRandom, test_setrv) {
+  std::vector<double> myValues({0, 1, 3.14, -99});
+  SetRv               myRv(myValues, 42, 0, 0);
+
+  std::set<double> myFound;
+  for (size_t i = 0; i < 100; i++) {
+    myFound.emplace(myRv());
+  }
+
+  for (const auto& myValue : myValues) {
+    ASSERT_TRUE(myFound.count(myValue) == 1);
+  }
+}
+
 } // namespace support
 } // namespace uiiit
