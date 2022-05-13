@@ -148,7 +148,7 @@ TEST_F(TestThreadPool, test_instantiate_with_unique_ptr) {
 
 TEST_F(TestThreadPool, test_wait_before_stop) {
   ThreadPool<Stoppable> myPool;
-  bool                  myStopped;
+  auto                  myStopped = false;
   myPool.add(Stoppable(theCounter, myStopped));
   myPool.start();
   ASSERT_NO_THROW(myPool.wait());
@@ -157,7 +157,7 @@ TEST_F(TestThreadPool, test_wait_before_stop) {
 
 TEST_F(TestThreadPool, test_stop_before_wait) {
   ThreadPool<Stoppable> myPool;
-  bool                  myStopped;
+  auto                  myStopped = false;
   myPool.add(Stoppable(theCounter, myStopped));
   myPool.start();
   ASSERT_NO_THROW(myPool.stop());
