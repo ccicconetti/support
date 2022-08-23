@@ -30,8 +30,8 @@ SOFTWARE.
 #include "gtest/gtest.h"
 
 #include "Support/chrono.h"
-#include "Support/wait.h"
 #include "Support/testutils.h"
+#include "Support/wait.h"
 
 namespace uiiit {
 namespace support {
