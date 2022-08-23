@@ -13,7 +13,7 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/version.h
 )
 
-add_library(uiiitsupport SHARED
+add_library(uiiitsupport STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/chrono.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/clioptions.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/conf.cpp

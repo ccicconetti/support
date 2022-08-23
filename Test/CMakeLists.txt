@@ -27,42 +27,119 @@ if(NOT skip_google_test)
 
 endif()
 
-include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
-
-add_library(testsupportlib SHARED
-  ${CMAKE_CURRENT_SOURCE_DIR}/testconf.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testexperimentdata.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testfit.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testhistogram.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testjain.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testmath.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testmmtable.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testmovingavg.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testmovingvariance.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testmovingwnd.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testparallelbatch.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testperiodictask.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testprocess.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testqueue.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testrandom.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testsplit.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testsystem.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/teststat.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testthreadpool.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testuuid.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testwait.cpp
+set(PROTOS
+  ${CMAKE_CURRENT_SOURCE_DIR}/testservice.proto
 )
 
-target_link_libraries(testsupportlib
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_SRC_DIR} ${PROTOS})
+grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${PROTO_SRC_DIR} ${PROTOS})
+
+add_library(testservice STATIC
+  ${PROTO_SRCS}
+  ${GRPC_SRCS}
+)
+
+include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
+
+include(GoogleTest)
+
+set(LIBS
   uiiitsupport
   gtest
   ${Boost_LIBRARIES}
 )
 
-add_executable(testsupport
-  ${CMAKE_CURRENT_SOURCE_DIR}/testmain.cpp
-)
+add_executable(testconf testmain.cpp testconf.cpp)
+target_link_libraries(testconf ${LIBS})
+gtest_discover_tests(testconf)
 
-target_link_libraries(testsupport
-  testsupportlib
+add_executable(testexperimentdata testmain.cpp testexperimentdata.cpp)
+target_link_libraries(testexperimentdata ${LIBS})
+gtest_discover_tests(testexperimentdata)
+
+add_executable(testfit testmain.cpp testfit.cpp)
+target_link_libraries(testfit ${LIBS})
+gtest_discover_tests(testfit)
+
+add_executable(testhistogram testmain.cpp testhistogram.cpp)
+target_link_libraries(testhistogram ${LIBS})
+gtest_discover_tests(testhistogram)
+
+add_executable(testjain testmain.cpp testjain.cpp)
+target_link_libraries(testjain ${LIBS})
+gtest_discover_tests(testjain)
+
+add_executable(testmath testmain.cpp testmath.cpp)
+target_link_libraries(testmath ${LIBS})
+gtest_discover_tests(testmath)
+
+add_executable(testmmtable testmain.cpp testmmtable.cpp)
+target_link_libraries(testmmtable ${LIBS})
+gtest_discover_tests(testmmtable)
+
+add_executable(testmovingavg testmain.cpp testmovingavg.cpp)
+target_link_libraries(testmovingavg ${LIBS})
+gtest_discover_tests(testmovingavg)
+
+add_executable(testmovingvariance testmain.cpp testmovingvariance.cpp)
+target_link_libraries(testmovingvariance ${LIBS})
+gtest_discover_tests(testmovingvariance)
+
+add_executable(testmovingwnd testmain.cpp testmovingwnd.cpp)
+target_link_libraries(testmovingwnd ${LIBS})
+gtest_discover_tests(testmovingwnd)
+
+add_executable(testparallelbatch testmain.cpp testparallelbatch.cpp)
+target_link_libraries(testparallelbatch ${LIBS})
+gtest_discover_tests(testparallelbatch)
+
+add_executable(testperiodictask testmain.cpp testperiodictask.cpp)
+target_link_libraries(testperiodictask ${LIBS})
+gtest_discover_tests(testperiodictask)
+
+add_executable(testprocess testmain.cpp testprocess.cpp)
+target_link_libraries(testprocess ${LIBS})
+gtest_discover_tests(testprocess)
+
+add_executable(testqueue testmain.cpp testqueue.cpp)
+target_link_libraries(testqueue ${LIBS})
+gtest_discover_tests(testqueue)
+
+add_executable(testrandom testmain.cpp testrandom.cpp)
+target_link_libraries(testrandom ${LIBS})
+gtest_discover_tests(testrandom)
+
+add_executable(testrpc testmain.cpp testrpc.cpp)
+target_link_libraries(testrpc
+  ${LIBS}
+  testservice
+  uiiitrpcsupport
+  gRPC::grpc++_reflection
+  protobuf::libprotobuf
 )
+gtest_discover_tests(testrpc)
+
+add_executable(testsplit testmain.cpp testsplit.cpp)
+target_link_libraries(testsplit ${LIBS})
+gtest_discover_tests(testsplit)
+
+add_executable(testsystem testmain.cpp testsystem.cpp)
+target_link_libraries(testsystem ${LIBS})
+gtest_discover_tests(testsystem)
+
+add_executable(teststat testmain.cpp teststat.cpp)
+target_link_libraries(teststat ${LIBS})
+gtest_discover_tests(teststat)
+
+add_executable(testthreadpool testmain.cpp testthreadpool.cpp)
+target_link_libraries(testthreadpool ${LIBS})
+gtest_discover_tests(testthreadpool)
+
+add_executable(testuuid testmain.cpp testuuid.cpp)
+target_link_libraries(testuuid ${LIBS})
+gtest_discover_tests(testuuid)
+
+add_executable(testwait testmain.cpp testwait.cpp)
+target_link_libraries(testwait ${LIBS})
+gtest_discover_tests(testwait)
+

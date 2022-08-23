@@ -1,4 +1,4 @@
-add_library(uiiitdataset SHARED
+add_library(uiiitdataset STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/afdb-utils.cpp
 )
 

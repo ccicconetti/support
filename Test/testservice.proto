@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package uiiit.rpc;
+
+service TestService {
+  rpc Get (String) returns (String) {}
+}
+
+message String {
+  string value = 1;
+}

@@ -36,6 +36,9 @@ MESSAGE("CMAKE_BUILD_TYPE:         ${CMAKE_BUILD_TYPE}")
 MESSAGE("Protobuf Library:         ${PROTOBUF_LIBRARY}")
 MESSAGE("Protobuf Includes Path:   ${PROTOBUF_INCLUDE_DIR}")
 
+set(PROTO_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto-src)
+file(MAKE_DIRECTORY ${PROTO_SRC_DIR})
+include_directories(${PROTO_SRC_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -45,5 +48,6 @@ add_subdirectory(RpcSupport)
 
 string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_LOWER)
 if (${CMAKE_BUILD_TYPE_LOWER} STREQUAL "debug")
+  enable_testing()
   add_subdirectory(Test)
 endif()
