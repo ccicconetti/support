@@ -27,18 +27,6 @@ if(NOT skip_google_test)
 
 endif()
 
-set(PROTOS
-  ${CMAKE_CURRENT_SOURCE_DIR}/testservice.proto
-)
-
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_SRC_DIR} ${PROTOS})
-grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${PROTO_SRC_DIR} ${PROTOS})
-
-add_library(testservice STATIC
-  ${PROTO_SRCS}
-  ${GRPC_SRCS}
-)
-
 include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
 
 include(GoogleTest)
@@ -48,6 +36,26 @@ set(LIBS
   gtest
   ${Boost_LIBRARIES}
 )
+
+if(WITH_TEST_RPC)
+  protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_SRC_DIR} testservice.proto)
+  grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${PROTO_SRC_DIR} testservice.proto)
+
+  add_library(testservice STATIC
+    ${PROTO_SRCS}
+    ${GRPC_SRCS}
+  )
+
+  add_executable(testrpc testmain.cpp testrpc.cpp)
+  target_link_libraries(testrpc
+    ${LIBS}
+    testservice
+    uiiitrpcsupport
+    gRPC::grpc++_reflection
+    protobuf::libprotobuf
+  )
+  gtest_discover_tests(testrpc)
+endif()
 
 add_executable(testconf testmain.cpp testconf.cpp)
 target_link_libraries(testconf ${LIBS})
@@ -108,16 +116,6 @@ gtest_discover_tests(testqueue)
 add_executable(testrandom testmain.cpp testrandom.cpp)
 target_link_libraries(testrandom ${LIBS})
 gtest_discover_tests(testrandom)
-
-add_executable(testrpc testmain.cpp testrpc.cpp)
-target_link_libraries(testrpc
-  ${LIBS}
-  testservice
-  uiiitrpcsupport
-  gRPC::grpc++_reflection
-  protobuf::libprotobuf
-)
-gtest_discover_tests(testrpc)
 
 add_executable(testsplit testmain.cpp testsplit.cpp)
 target_link_libraries(testsplit ${LIBS})
