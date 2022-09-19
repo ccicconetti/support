@@ -27,9 +27,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "utils.h"
+#include "RpcSupport/utils.h"
 
-#include <grpc++/grpc++.h>
+#include "Support/fileutils.h"
+
+#include <cstdlib> // getenv
 
 namespace uiiit {
 namespace rpc {
@@ -42,6 +44,37 @@ void checkStatus(const grpc::Status& aStatus) {
   if (not aStatus.ok()) {
     throw RpcFailed(aStatus);
   }
+}
+
+struct Env {
+  std::string operator()(const std::string& aName,
+                         const std::string& aFallback) const {
+    if (getenv(aName.c_str()) == nullptr) {
+      return aFallback;
+    }
+    return std::string(getenv(aName.c_str()));
+  }
+};
+
+grpc::SslServerCredentialsOptions sslServerCredOpts() {
+  grpc::SslServerCredentialsOptions ret(
+      GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY);
+  ret.pem_root_certs = support::readFileAsString(Env()("CA_CRT", "ca.crt"));
+  ret.pem_key_cert_pairs.emplace_back(
+      grpc::SslServerCredentialsOptions::PemKeyCertPair{
+          support::readFileAsString(Env()("SERVER_KEY", "server.key")),
+          support::readFileAsString(Env()("SERVER_CRT", "server.crt"))});
+  return ret;
+}
+
+grpc::SslCredentialsOptions sslClientCredOpts() {
+  grpc::SslCredentialsOptions ret;
+  ret.pem_root_certs = support::readFileAsString(Env()("CA_CRT", "ca.crt"));
+  ret.pem_private_key =
+      support::readFileAsString(Env()("CLIENT_KEY", "client.key"));
+  ret.pem_cert_chain =
+      support::readFileAsString(Env()("CLIENT_CRT", "client.crt"));
+  return ret;
 }
 
 } // namespace rpc

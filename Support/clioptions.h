@@ -56,7 +56,7 @@ class CliOptions
   }
 
   //! \return the map of variables parsed from CLI.
-  const boost::program_options::variables_map& varMap() noexcept;
+  const boost::program_options::variables_map& varMap() const noexcept;
 
  protected:
   CliOptions(int                                          argc,
