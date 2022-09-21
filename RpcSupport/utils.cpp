@@ -31,7 +31,17 @@ SOFTWARE.
 
 #include "Support/fileutils.h"
 
+#include <boost/filesystem.hpp>
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+
+#include <glog/logging.h>
+
 #include <cstdlib> // getenv
+#include <stdexcept>
+
+namespace bf = boost::filesystem;
 
 namespace uiiit {
 namespace rpc {
@@ -46,7 +56,7 @@ void checkStatus(const grpc::Status& aStatus) {
   }
 }
 
-struct Env {
+struct Env final {
   std::string operator()(const std::string& aName,
                          const std::string& aFallback) const {
     if (getenv(aName.c_str()) == nullptr) {
@@ -56,24 +66,59 @@ struct Env {
   }
 };
 
+struct Cwd final {
+  Cwd(const std::string& aEnvName)
+      : theOldPath(bf::current_path())
+      , theCertDir(Env()(aEnvName, "")) {
+    if (not theCertDir.empty()) {
+      const bf::path myCertPath(theCertDir);
+      if (not bf::exists(myCertPath) or not bf::is_directory(myCertPath)) {
+        throw std::runtime_error("Invalid CERT_DIR: " + theCertDir);
+      }
+      bf::current_path(myCertPath);
+    }
+  }
+
+  ~Cwd() {
+    if (not theCertDir.empty()) {
+      bf::current_path(theOldPath);
+    }
+  }
+
+  const bf::path    theOldPath;
+  const std::string theCertDir;
+};
+
 grpc::SslServerCredentialsOptions sslServerCredOpts() {
+  Cwd        myCwd("CERT_DIR");
+  const auto myRootCrt   = Env()("CA_CRT", "ca.crt");
+  const auto myServerKey = Env()("SERVER_KEY", "server.key");
+  const auto myServerCrt = Env()("SERVER_CRT", "server.crt");
+  VLOG(1) << "root crt: " << myRootCrt << ", server key: " << myServerKey
+          << ", server crt: " << myServerCrt << " [CWD " << bf::current_path()
+          << "]";
   grpc::SslServerCredentialsOptions ret(
       GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY);
-  ret.pem_root_certs = support::readFileAsString(Env()("CA_CRT", "ca.crt"));
+  ret.pem_root_certs = support::readFileAsString(myRootCrt);
   ret.pem_key_cert_pairs.emplace_back(
       grpc::SslServerCredentialsOptions::PemKeyCertPair{
-          support::readFileAsString(Env()("SERVER_KEY", "server.key")),
-          support::readFileAsString(Env()("SERVER_CRT", "server.crt"))});
+          support::readFileAsString(myServerKey),
+          support::readFileAsString(myServerCrt)});
   return ret;
 }
 
 grpc::SslCredentialsOptions sslClientCredOpts() {
+  Cwd        myCwd("CERT_DIR");
+  const auto myRootCrt   = Env()("CA_CRT", "ca.crt");
+  const auto myClientKey = Env()("CLIENT_KEY", "client.key");
+  const auto myClientCrt = Env()("CLIENT_CRT", "client.crt");
+  VLOG(1) << "root crt: " << myRootCrt << ", client key: " << myClientKey
+          << ", client crt: " << myClientCrt << " [CWD " << bf::current_path()
+          << "]";
   grpc::SslCredentialsOptions ret;
-  ret.pem_root_certs = support::readFileAsString(Env()("CA_CRT", "ca.crt"));
-  ret.pem_private_key =
-      support::readFileAsString(Env()("CLIENT_KEY", "client.key"));
-  ret.pem_cert_chain =
-      support::readFileAsString(Env()("CLIENT_CRT", "client.crt"));
+  ret.pem_root_certs  = support::readFileAsString(myRootCrt);
+  ret.pem_private_key = support::readFileAsString(myClientKey);
+  ret.pem_cert_chain  = support::readFileAsString(myClientCrt);
   return ret;
 }
 
