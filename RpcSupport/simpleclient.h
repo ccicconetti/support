@@ -29,12 +29,14 @@ SOFTWARE.
 
 #pragma once
 
+#include "RpcSupport/utils.h"
+#include "Support/fileutils.h"
 #include "Support/macros.h"
+
+#include <grpc++/grpc++.h>
 
 #include <memory>
 #include <string>
-
-#include <grpc++/grpc++.h>
 
 namespace uiiit {
 namespace rpc {
@@ -48,11 +50,22 @@ class SimpleClient
  public:
   NONCOPYABLE_NONMOVABLE(SimpleClient);
 
-  explicit SimpleClient(const std::string& aServerEndpoint)
-      : theChannel(grpc::CreateChannel(aServerEndpoint,
-                                       grpc::InsecureChannelCredentials()))
-      , theStub(SERVER::NewStub(theChannel))
+  /**
+   * @brief Construct a new Simple Client object
+   *
+   * @param aServerEndpoint The end-point to which to connect for this service.
+   * @param aSecure If true then use SSL/TLS authentication.
+   */
+  explicit SimpleClient(const std::string& aServerEndpoint,
+                        const bool         aSecure = false)
+      : theChannel(nullptr)
+      , theStub(nullptr)
       , theServerEndpoint(aServerEndpoint) {
+    theChannel = grpc::CreateChannel(
+        aServerEndpoint,
+        aSecure ? grpc::SslCredentials(sslClientCredOpts()) :
+                  grpc::InsecureChannelCredentials());
+    theStub = SERVER::NewStub(theChannel);
   }
 
   virtual ~SimpleClient() {

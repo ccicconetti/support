@@ -4,6 +4,7 @@ add_library(uiiitrpcsupport STATIC
 )
 
 target_link_libraries(uiiitrpcsupport
+  uiiitsupport
   ${GLOG}
   gRPC::grpc++_reflection
   protobuf::libprotobuf
