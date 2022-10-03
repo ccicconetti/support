@@ -66,3 +66,10 @@ std::string toString(
   }
   return myRet;
 }
+
+template <class CONTAINER>
+std::string toStringStd(const CONTAINER& aContainer, const std::string& aSep) {
+  return toString(aContainer, aSep, [](const auto& aValue) {
+    return std::to_string(aValue);
+  });
+}
