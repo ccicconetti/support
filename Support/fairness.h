@@ -31,9 +31,11 @@ SOFTWARE.
 
 #include "Support/stat.h"
 
+#include <cmath>
 #include <exception>
 #include <functional>
 #include <stdexcept>
+#include <string>
 
 namespace uiiit {
 namespace support {
@@ -47,6 +49,8 @@ namespace support {
  * @param aContainer the population
  * @param aUnaryOp a unary operator to conver the elements to real values
  * @return double
+ *
+ * @throw std::runtime_error if the container is empty.
  */
 template <typename CONTAINER>
 double jainFairnessIndex(
@@ -66,6 +70,56 @@ double jainFairnessIndex(
   }
   return mySum.mean() * mySum.mean() / mySSum.mean();
 }
+
+/**
+ * @brief Compute weighted proportional fairness index.
+ *
+ * F. P. Kelly, A. K. Maulloo, and D. K. H. Tan,
+ * "Rate control for communication networks: Shadow prices, proportional
+ *  fairness and stability,"
+ * J. of the Operational Research Society, vol. 49, no. 3, pp. 237–252, 1998
+ *
+ * @tparam CONTAINER_SAM the type of the container' elements (samples)
+ * @tparam CONTAINER_WGH the type of the container' weights
+ * @param aContainer the population
+ * @param aWeights the weights (or costs), one per element, ignore if empty
+ * @param aUnaryOp a unary operator to conver the elements to real values
+ * @return the sum of logarithms of the samples, optionally weighted, or 0 if at
+ * least on element is non-positive
+ *
+ * @throw std::runtime_error if there are weights and the samples and weights do
+ * not have the same size.
+ */
+template <typename CONTAINER_SAM, typename CONTAINER_WGH>
+double proportionalFairnessIndex(
+    const CONTAINER_SAM&                                             aContainer,
+    const CONTAINER_WGH&                                             aWeights,
+    const std::function<double(typename CONTAINER_SAM::value_type)>& aUnaryOp =
+        [](const auto& aValue) { return aValue; }) {
+  if (not aWeights.empty() and aWeights.size() != aContainer.size()) {
+    throw std::runtime_error(
+        "inconsistent sizes when calculating proportional fairness index: " +
+        std::to_string(aContainer.size()) + " samples vs. " +
+        std::to_string(aWeights.size()) + " weights");
+  }
+  double ret = 0;
+  auto   it  = aContainer.begin();
+  auto   jt  = aWeights.begin();
+  while (it != aContainer.end()) {
+    auto myWeight = 1.0;
+    if (jt != aWeights.end()) {
+      myWeight = *jt;
+      ++jt;
+    }
+    const auto myValue = aUnaryOp(*it);
+    if (not std::isnormal(myValue) or myValue < 0) {
+      return 0;
+    }
+    ret += myWeight * std::log(myValue);
+    ++it;
+  }
+  return ret;
+} // namespace support
 
 } // namespace support
 } // namespace uiiit

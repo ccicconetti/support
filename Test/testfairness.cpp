@@ -27,10 +27,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "Support/jain.h"
+#include "Support/fairness.h"
 
 #include "gtest/gtest.h"
 
+#include <cassert>
 #include <cmath>
 #include <iterator>
 #include <limits>
@@ -39,7 +40,7 @@ SOFTWARE.
 namespace uiiit {
 namespace support {
 
-struct TestJain : public ::testing::Test {
+struct TestFairness : public ::testing::Test {
 
   double jain(const std::vector<double>& aValues) {
     assert(not aValues.empty());
@@ -55,7 +56,7 @@ struct TestJain : public ::testing::Test {
   }
 };
 
-TEST_F(TestJain, test_vector) {
+TEST_F(TestFairness, test_jain_vector) {
   std::vector<double> myPopulation({1, 0.9, 0.8, 1, 1});
   ASSERT_FLOAT_EQ(jain(myPopulation), jainFairnessIndex(myPopulation));
 
@@ -64,7 +65,7 @@ TEST_F(TestJain, test_vector) {
   ASSERT_THROW(jainFairnessIndex(std::vector<double>()), std::runtime_error);
 }
 
-TEST_F(TestJain, test_map) {
+TEST_F(TestFairness, test_jain_map) {
   std::map<std::string, int> myPopulation({
       {"1", 1},
       {"0.2", 0},
@@ -78,6 +79,43 @@ TEST_F(TestJain, test_map) {
   ASSERT_FLOAT_EQ(0.5, jainFairnessIndex(myPopulation, [](const auto& aPair) {
                     return aPair.second;
                   }));
+}
+
+TEST_F(TestFairness, test_proportional_fairness) {
+  std::vector<double> myPopulation({1, 2, 2, 4, 4});
+  ASSERT_FLOAT_EQ(
+      4.1588831,
+      proportionalFairnessIndex(myPopulation, std::vector<double>()));
+}
+
+TEST_F(TestFairness, test_proportional_fairness_weighted) {
+  std::vector<double> myPopulation({1, 2, 2, 4, 4});
+  ASSERT_FLOAT_EQ(4.1588831,
+                  proportionalFairnessIndex(
+                      myPopulation, std::vector<double>({1, 1, 1, 1, 1})));
+  ASSERT_FLOAT_EQ(2 * 4.1588831,
+                  proportionalFairnessIndex(
+                      myPopulation, std::vector<double>({2, 2, 2, 2, 2})));
+  ASSERT_FLOAT_EQ(15.942385152878742,
+                  proportionalFairnessIndex(
+                      myPopulation, std::vector<double>({1, 2, 3, 4, 5})));
+}
+
+TEST_F(TestFairness, test_proportional_fairness_invalid) {
+  ASSERT_FLOAT_EQ(0,
+                  proportionalFairnessIndex(std::vector<double>({1, 2, 0}),
+                                            std::vector<double>()));
+  ASSERT_FLOAT_EQ(0,
+                  proportionalFairnessIndex(std::vector<double>({1, 2, 0}),
+                                            std::vector<double>({1, 1, 1})));
+
+  ASSERT_THROW(proportionalFairnessIndex(std::vector<double>({1, 2}),
+                                         std::vector<double>({1, 1, 1})),
+               std::runtime_error);
+
+  ASSERT_THROW(proportionalFairnessIndex(std::vector<double>({1, 2, 3}),
+                                         std::vector<double>({1, 1})),
+               std::runtime_error);
 }
 
 } // namespace support

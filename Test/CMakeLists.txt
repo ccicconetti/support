@@ -73,9 +73,9 @@ add_executable(testhistogram testmain.cpp testhistogram.cpp)
 target_link_libraries(testhistogram ${LIBS})
 gtest_discover_tests(testhistogram)
 
-add_executable(testjain testmain.cpp testjain.cpp)
-target_link_libraries(testjain ${LIBS})
-gtest_discover_tests(testjain)
+add_executable(testfairness testmain.cpp testfairness.cpp)
+target_link_libraries(testfairness ${LIBS})
+gtest_discover_tests(testfairness)
 
 add_executable(testmath testmain.cpp testmath.cpp)
 target_link_libraries(testmath ${LIBS})
