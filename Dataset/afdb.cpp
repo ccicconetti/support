@@ -50,6 +50,8 @@ SOFTWARE.
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -58,6 +60,142 @@ namespace po = boost::program_options;
 namespace us = uiiit::support;
 namespace ud = uiiit::dataset;
 
+std::unique_ptr<std::ofstream>
+openFile(const std::string&             aFilename,
+         const boost::filesystem::path& aOutputPath) {
+  const auto myFilename = (aOutputPath / aFilename).string();
+  auto       ret        = std::make_unique<std::ofstream>(myFilename);
+  if (not *ret) {
+    throw std::runtime_error("error when opening file for writing: " +
+                             myFilename);
+  }
+  return ret;
+}
+
+//! Collects lifetime information of an application.
+struct Lifecycle {
+  //! The timestamp of the first event of the application.
+  uint64_t theBegin = 0;
+  //! The timestamp of the last event of the application.
+  uint64_t theEnd = 0;
+  //! The cumulative size of the write events.
+  std::size_t theWrite = 0;
+  //! The cumulative size of the read events.
+  std::size_t theRead = 0;
+  //! The total number of calls.
+  std::size_t theCalls = 0;
+
+  //! \return true if this is the first time the Lifecyle was accessed.
+  bool first() const noexcept {
+    return theCalls == 0;
+  }
+
+  //! \return true if this application has been called only once.
+  bool singleton() const noexcept {
+    return theCalls == 1 or (theBegin == theEnd);
+  }
+
+  //! \return a string with values separated by commas.
+  std::string toString() const {
+    std::stringstream ret;
+    ret << theBegin << ',' << theEnd << ',' << theWrite << ',' << theRead << ','
+        << theCalls;
+    return ret.str();
+  }
+};
+
+using Lifecycles =
+    std::unordered_map<std::string, std::unordered_map<std::string, Lifecycle>>;
+
+void lifecycles(const std::deque<ud::Row>& aDataset, Lifecycles& aLifecycles) {
+  assert(aLifecycles.empty());
+  if (aDataset.empty()) {
+    return;
+  }
+  const auto myTimeRef = static_cast<uint64_t>(aDataset.front().theTimestamp);
+  for (const auto& myRow : aDataset) {
+    auto& myPerRegion =
+        aLifecycles.emplace(myRow.theRegion, Lifecycles::mapped_type())
+            .first->second;
+    auto& myLifecycle =
+        myPerRegion.emplace(myRow.key(), Lifecycle()).first->second;
+    const auto myTimestamp =
+        static_cast<uint64_t>(myRow.theTimestamp) - myTimeRef;
+    if (myLifecycle.first()) {
+      myLifecycle.theBegin = myTimestamp;
+    }
+    myLifecycle.theEnd = myTimestamp;
+    if (myRow.theWrite) {
+      myLifecycle.theWrite += myRow.theBlobSize;
+    } else {
+      myLifecycle.theRead += myRow.theBlobSize;
+    }
+    myLifecycle.theCalls++;
+  }
+
+#ifndef NDEBUG
+  // consistency checks
+  for (const auto& myPerRegion : aLifecycles) {
+    for (const auto& myPerApp : myPerRegion.second) {
+      const auto& myLifecycle = myPerApp.second;
+      assert(myLifecycle.theEnd >= myLifecycle.theBegin);
+      assert(myLifecycle.singleton() or
+             myLifecycle.theEnd > myLifecycle.theBegin);
+    }
+  }
+#endif
+}
+
+void saveLifecycles(const Lifecycles&              aLifecycles,
+                    const boost::filesystem::path& aOutputPath,
+                    const bool                     aSingletons) {
+
+  // save lifecycles, one per region
+  for (const auto& myPerRegion : aLifecycles) {
+    auto myStream = openFile(myPerRegion.first + ".dat", aOutputPath);
+    for (const auto& myPerApp : myPerRegion.second) {
+      if (aSingletons or not myPerApp.second.singleton()) {
+        *myStream << myPerApp.first << ',' << myPerApp.second.toString()
+                  << '\n';
+      }
+    }
+  }
+
+  // save number of concurrent apps, in total
+  struct Event {
+    enum Type : uint8_t {
+      Begin = 0,
+      End   = 1,
+    };
+    uint64_t theTimestamp = 0;
+    Type     theType      = Type::Begin;
+    bool     operator<(const Event& aOther) const noexcept {
+      return theTimestamp < aOther.theTimestamp;
+    }
+  };
+
+  std::multiset<Event> myEvents;
+  for (const auto& myPerRegion : aLifecycles) {
+    for (const auto& myPerApp : myPerRegion.second) {
+      myEvents.emplace(Event{myPerApp.second.theBegin, Event::Begin});
+      myEvents.emplace(Event{myPerApp.second.theEnd, Event::End});
+    }
+  }
+
+  auto        myStream     = openFile("concurrent.dat", aOutputPath);
+  std::size_t myConcurrent = 0;
+  for (const auto& myEvent : myEvents) {
+    if (myEvent.theType == Event::Begin) {
+      myConcurrent++;
+    } else {
+      myConcurrent--;
+    }
+    *myStream << myEvent.theTimestamp << ' ' << myConcurrent << '\n';
+  }
+}
+
+//! Collects the read vs. write period durations and number of events in each
+//! period for an application.
 struct Period {
   std::vector<double>      theReadDurations;
   std::vector<double>      theWriteDurations;
@@ -116,23 +254,29 @@ void savePeriods(std::unordered_map<std::string, Period>& aPeriods,
   std::size_t myCounter = 0;
   for (const auto& myPeriod : aPeriods) {
     myCounter++;
-    // clang-format off
-    std::ofstream myRDStream((aOutputPath / (std::string("read-durations-")+std::to_string(myCounter)+".dat")).string());
-    std::ofstream myWDStream((aOutputPath / (std::string("write-durations-")+std::to_string(myCounter)+".dat")).string());
-    std::ofstream myREStream((aOutputPath / (std::string("read-events-")+std::to_string(myCounter)+".dat")).string());
-    std::ofstream myWEStream((aOutputPath / (std::string("write-events-")+std::to_string(myCounter)+".dat")).string());
-    // clang-format on
+    auto myRDStream = openFile(std::string("read-durations-") +
+                                   std::to_string(myCounter) + ".dat",
+                               aOutputPath);
+    auto myWDStream = openFile(std::string("write-durations-") +
+                                   std::to_string(myCounter) + ".dat",
+                               aOutputPath);
+    auto myREStream = openFile(std::string("read-events-") +
+                                   std::to_string(myCounter) + ".dat",
+                               aOutputPath);
+    auto myWEStream = openFile(std::string("write-events-") +
+                                   std::to_string(myCounter) + ".dat",
+                               aOutputPath);
     for (const auto& myValue : myPeriod.second.theReadDurations) {
-      myRDStream << myValue << '\n';
+      *myRDStream << myValue << '\n';
     }
     for (const auto& myValue : myPeriod.second.theWriteDurations) {
-      myWDStream << myValue << '\n';
+      *myWDStream << myValue << '\n';
     }
     for (const auto& myValue : myPeriod.second.theReadEvents) {
-      myREStream << myValue << '\n';
+      *myREStream << myValue << '\n';
     }
     for (const auto& myValue : myPeriod.second.theWriteEvents) {
-      myWEStream << myValue << '\n';
+      *myWEStream << myValue << '\n';
     }
   }
 }
@@ -145,11 +289,9 @@ void saveNumInvocations(const std::deque<ud::Row>&     aDataset,
     it.first->second++;
   }
 
-  std::ofstream myStream(
-      (aOutputPath / (std::string("num-invocations.dat"))).string());
-
+  auto myStream = openFile("num-invocations.dat", aOutputPath);
   for (const auto& elem : myNumInvocations) {
-    myStream << elem.first << ',' << elem.second << '\n';
+    *myStream << elem.first << ',' << elem.second << '\n';
   }
 }
 
@@ -173,7 +315,9 @@ int main(int argc, char* argv[]) {
      "Output directory.")
     ("analysis",
      po::value<std::string>(&myAnalysis)->default_value("num-invocations"),
-     "Type of analysis, one of: {read-write-periods, num-invocations}.")
+     "Type of analysis, one of: {read-write-periods, num-invocations, lifecycles}.")
+    ("singletons",
+     "Also include functions called only once (used with 'lifecycles').")
     ;
   // clang-format on
 
@@ -211,6 +355,12 @@ int main(int argc, char* argv[]) {
 
     } else if (myAnalysis == "num-invocations") {
       saveNumInvocations(myDataset, myOutputDir);
+
+    } else if (myAnalysis == "lifecycles") {
+      Lifecycles myLifecycles;
+      lifecycles(myDataset, myLifecycles);
+      saveLifecycles(
+          myLifecycles, myOutputDir, myVarMap.count("singletons") > 0);
 
     } else {
       throw std::runtime_error("Invalid type of analysis: " + myAnalysis);
