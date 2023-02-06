@@ -60,16 +60,16 @@ struct Row {
     return theUser + "," + theApp;
   }
 
-  double      theTimestamp;
-  std::string theRegion;
-  std::string theUser;
-  std::string theApp;
-  std::string theFunction;
-  std::string theBlob;
-  std::string theBlobType;
-  std::string theBlobVersion;
-  std::size_t theBlobSize;
-  bool        theWrite;
+  double      theTimestamp;   // in ms
+  std::string theRegion;      // unique ID for the region
+  std::string theUser;        // unique ID for the user
+  std::string theApp;         // unique ID for the app
+  std::string theFunction;    // unique ID for the invocation
+  std::string theBlob;        // unique ID for the BLOB accessed
+  std::string theBlobType;    // BLOB type
+  std::string theBlobVersion; // BLOB version
+  std::size_t theBlobSize;    // in bytes
+  bool        theWrite;       // true: write access; false: read access
 };
 
 /**
