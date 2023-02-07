@@ -167,5 +167,5 @@ set fontpath
 set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "wxt"
-plot 'lifecycles.dat' u (8*($5+$6)/(($4-$3)/1e3)):(1) smooth cnorm notitle
+plot 'lifecycles.dat' u (8*($5+$6)/($8/1e3)):(1) smooth cnorm notitle
 #    EOF

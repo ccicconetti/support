@@ -54,7 +54,7 @@ mkdir lifecycles
 Analyze the trace:
 
 ```
-./afdb --input azurefunctions-accesses-2020-sorted.csv --output-dir lifecycles --analysis lifecycles
+./afdb --input azurefunctions-accesses-2020-sorted.csv --output-dir lifecycles --analysis lifecycles --session-duration 2
 ```
 
 You can then plot some statistics with Gnuplot:

@@ -169,5 +169,5 @@ set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "wxt"
 ## Last datafile plotted: "lifecycles.dat"
-plot 'lifecycles.dat' u ($7/(($4-$3)/1e3)):(8*($5+$6)/(($4-$3)/1e3)) w p notitle
+plot 'lifecycles.dat' u ($7/($8/1e3)):(8*($5+$6)/($8/1e3)) w p notitle
 #    EOF

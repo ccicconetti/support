@@ -47,7 +47,7 @@ unset raxis
 set theta counterclockwise right
 set style parallel front  lt black linewidth 2.000 dashtype solid
 set key title "" center
-set key fixed right top vertical Right noreverse enhanced autotitle nobox
+set key fixed left top vertical Left noreverse enhanced autotitle nobox
 set key noinvert samplen 4 spacing 1 width 0 height 0 
 set key maxcolumns 0 maxrows 0
 set key noopaque
@@ -168,5 +168,6 @@ set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap 
 GNUTERM = "wxt"
 x = 0.0
 ## Last datafile plotted: "<cat `ls ../lifecycles/*.dat | grep -v concurrent.dat`"
-plot 'lifecycles.dat' u (($4-$3)/3.6e6):(1) smooth cnorm notitle
+plot 'lifecycles.dat' u (($4-$3)/3.6e6):(1) smooth cnorm title "application",\
+     '' u ($8/3.6e6):(1) smooth cnorm title "session"
 #    EOF
