@@ -39,6 +39,7 @@ SOFTWARE.
 #include "Support/versionutils.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 
@@ -84,6 +85,8 @@ struct Lifecycle {
   std::size_t theRead = 0;
   //! The total number of calls.
   std::size_t theCalls = 0;
+  //! The total session time, in ms.
+  uint64_t theSession = 0;
 
   //! \return true if this is the first time the Lifecyle was accessed.
   bool first() const noexcept {
@@ -99,7 +102,7 @@ struct Lifecycle {
   std::string toString() const {
     std::stringstream ret;
     ret << theBegin << ',' << theEnd << ',' << theWrite << ',' << theRead << ','
-        << theCalls;
+        << theCalls << ',' << theSession;
     return ret.str();
   }
 };
@@ -107,11 +110,22 @@ struct Lifecycle {
 using Lifecycles =
     std::unordered_map<std::string, std::unordered_map<std::string, Lifecycle>>;
 
-void lifecycles(const std::deque<ud::Row>& aDataset, Lifecycles& aLifecycles) {
+/**
+ * @brief Extract from the dataset lifecycle information about the apps.
+ *
+ * @param aDataset The input dataset.
+ * @param aLifecycles The output data.
+ * @param aSessionduration The session duration after the last call, in minutes.
+ */
+void lifecycles(const std::deque<ud::Row>& aDataset,
+                Lifecycles&                aLifecycles,
+                const double               aSessionduration) {
   assert(aLifecycles.empty());
   if (aDataset.empty()) {
     return;
   }
+  const auto mySessionDuration =
+      static_cast<uint64_t>(aSessionduration * 60 * 1000); // minutes -> ms
   const auto myTimeRef = static_cast<uint64_t>(aDataset.front().theTimestamp);
   for (const auto& myRow : aDataset) {
     auto& myPerRegion =
@@ -121,16 +135,21 @@ void lifecycles(const std::deque<ud::Row>& aDataset, Lifecycles& aLifecycles) {
         myPerRegion.emplace(myRow.key(), Lifecycle()).first->second;
     const auto myTimestamp =
         static_cast<uint64_t>(myRow.theTimestamp) - myTimeRef;
-    if (myLifecycle.first()) {
+    const auto myFirst = myLifecycle.first();
+    if (myFirst) {
       myLifecycle.theBegin = myTimestamp;
     }
-    myLifecycle.theEnd = myTimestamp;
+    const auto mySinceLast = myTimestamp - myLifecycle.theEnd;
+    myLifecycle.theEnd     = myTimestamp;
     if (myRow.theWrite) {
       myLifecycle.theWrite += myRow.theBlobSize;
     } else {
       myLifecycle.theRead += myRow.theBlobSize;
     }
     myLifecycle.theCalls++;
+    if (not myFirst) {
+      myLifecycle.theSession += std::min(mySinceLast, mySessionDuration);
+    }
   }
 
 #ifndef NDEBUG
@@ -141,11 +160,21 @@ void lifecycles(const std::deque<ud::Row>& aDataset, Lifecycles& aLifecycles) {
       assert(myLifecycle.theEnd >= myLifecycle.theBegin);
       assert(myLifecycle.singleton() or
              myLifecycle.theEnd > myLifecycle.theBegin);
+      assert(not myLifecycle.first() or myLifecycle.theSession == 0);
     }
   }
 #endif
 }
 
+/**
+ * @brief Save to files info about the lifecycles of apps.
+ *
+ * @param aLifecycles The info data to be saved.
+ * @param aOutputPath The directory where the data will be saved.
+ * @param aSingletons If true then also save apps with a single function call.
+ *
+ * \pre aOutputPath exists and it is a directory
+ */
 void saveLifecycles(const Lifecycles&              aLifecycles,
                     const boost::filesystem::path& aOutputPath,
                     const bool                     aSingletons) {
@@ -301,6 +330,7 @@ int main(int argc, char* argv[]) {
   std::string myDatasetFilename;
   std::string myOutputDir;
   std::string myAnalysis;
+  double      mySessionDuration;
 
   po::options_description myDesc("Allowed options");
   // clang-format off
@@ -308,16 +338,19 @@ int main(int argc, char* argv[]) {
     ("help,h", "produce help message")
     ("version,v", "print version and quit")
     ("input-dataset",
-     po::value<std::string>(&myDatasetFilename)->default_value(""),
+     po::value<std::string>(&myDatasetFilename)->required(),
      "Input dataset file name.")
     ("output-dir",
-     po::value<std::string>(&myOutputDir)->default_value(""),
+     po::value<std::string>(&myOutputDir)->required(),
      "Output directory.")
     ("analysis",
      po::value<std::string>(&myAnalysis)->default_value("num-invocations"),
      "Type of analysis, one of: {read-write-periods, num-invocations, lifecycles}.")
     ("singletons",
-     "Also include functions called only once (used with 'lifecycles').")
+     "Also include functions called only once (used with lifecycles analysis).")
+    ("session-duration",
+     po::value<double>(&mySessionDuration)->default_value(60),
+     "Duration of a session, in minutes, after the last event (used with lifecycles analysis).")
     ;
   // clang-format on
 
@@ -334,6 +367,11 @@ int main(int argc, char* argv[]) {
     if (myVarMap.count("version")) {
       std::cout << us::version() << std::endl;
       return EXIT_SUCCESS;
+    }
+
+    if (not boost::filesystem::is_directory(myOutputDir)) {
+      throw std::runtime_error("Output directory does not exist: " +
+                               myOutputDir);
     }
 
     VLOG(1) << "reading from: " << myDatasetFilename;
@@ -358,7 +396,7 @@ int main(int argc, char* argv[]) {
 
     } else if (myAnalysis == "lifecycles") {
       Lifecycles myLifecycles;
-      lifecycles(myDataset, myLifecycles);
+      lifecycles(myDataset, myLifecycles, mySessionDuration);
       saveLifecycles(
           myLifecycles, myOutputDir, myVarMap.count("singletons") > 0);
 
