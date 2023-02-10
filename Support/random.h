@@ -32,6 +32,7 @@ SOFTWARE.
 #include "Support/macros.h"
 
 #include <cassert>
+#include <memory>
 #include <numeric>
 #include <random>
 #include <set>
@@ -64,6 +65,26 @@ class RealRvInterface
   }
 
   virtual double operator()() = 0;
+
+  /**
+   * @brief Return a new r.v. based on the description given using the passed
+   * seed number initializers.
+   *
+   * @param aDescription the following descriptions are supported:
+   *
+   * - c -> return a constant value
+   * - U(a,b) -> return a uniformly distributed r.v. between a and b
+   * - Exp(l) -> return an exponentially distributed r.v. with mean 1/l
+   *
+   * @throw std::runtime_error if the description is not valid
+   *
+   * @return std::unique_ptr<RealRvInterface>
+   */
+  static std::unique_ptr<RealRvInterface>
+  fromString(const std::string& aDescription,
+             const size_t       a,
+             const size_t       b,
+             const size_t       c);
 };
 
 template <class TYPE>
@@ -84,6 +105,8 @@ class UniformIntRv : public GenericRv
 
 class ConstantRv : public RealRvInterface
 {
+  FRIEND_TEST(TestRandom, test_real_rv_from_string);
+
  public:
   explicit ConstantRv(const double aValue);
 
@@ -95,6 +118,8 @@ class ConstantRv : public RealRvInterface
 
 class UniformRv : public GenericRv, public RealRvInterface
 {
+  FRIEND_TEST(TestRandom, test_real_rv_from_string);
+
  public:
   explicit UniformRv(const double aMin,
                      const double aMax,
@@ -110,6 +135,8 @@ class UniformRv : public GenericRv, public RealRvInterface
 
 class ExponentialRv : public GenericRv, public RealRvInterface
 {
+  FRIEND_TEST(TestRandom, test_real_rv_from_string);
+
  public:
   explicit ExponentialRv(const double aLambda,
                          const size_t a,

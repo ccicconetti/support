@@ -27,9 +27,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "random.h"
+#include "Support/random.h"
+
+#include "Support/split.h"
 
 #include <chrono>
+#include <stdexcept>
 
 namespace uiiit {
 namespace support {
@@ -44,13 +47,44 @@ float random() {
 GenericRv::GenericRv(const size_t a, const size_t b, const size_t c)
     : theSeed({a, b, c})
     , theGenerator(theSeed) {
+  // noop
 }
 
-ConstantRv::ConstantRv(const double aValue) : theValue(aValue) {}
-
-  double ConstantRv::operator()() {
-    return theValue;
+std::unique_ptr<RealRvInterface>
+RealRvInterface::fromString(const std::string& aDescription,
+                            const size_t       a,
+                            const size_t       b,
+                            const size_t       c) {
+  if (aDescription.empty()) {
+    throw std::runtime_error("empty description");
   }
+
+  if (aDescription.size() >= 6) {
+    const auto myTokens =
+        support::split<std::vector<std::string>>(aDescription, "(,)");
+    if (myTokens.size() == 3 and myTokens[0] == "U") {
+      const auto A = std::stod(myTokens[1]);
+      const auto B = std::stod(myTokens[2]);
+      return std::make_unique<UniformRv>(A, B, a, b, c);
+    } else if (myTokens.size() == 2 and myTokens[0] == "Exp") {
+      const auto L = std::stod(myTokens[1]);
+      return std::make_unique<ExponentialRv>(L, a, b, c);
+    }
+  }
+
+  // if the other formats to not match, assume a constant was given
+  const auto C = std::stod(aDescription); // throws if cannot convert to number
+  return std::make_unique<ConstantRv>(C);
+}
+
+ConstantRv::ConstantRv(const double aValue)
+    : theValue(aValue) {
+  // noop
+}
+
+double ConstantRv::operator()() {
+  return theValue;
+}
 
 UniformRv::UniformRv(const double aMin,
                      const double aMax,
@@ -76,6 +110,7 @@ ExponentialRv::ExponentialRv(const double aLambda,
                              const size_t c)
     : GenericRv(a, b, c)
     , theRv(aLambda) {
+  // noop
 }
 
 double ExponentialRv::operator()() {
@@ -88,6 +123,7 @@ PoissonRv::PoissonRv(const double aMu,
                      const size_t c)
     : GenericRv(a, b, c)
     , theRv(aMu) {
+  // noop
 }
 
 size_t PoissonRv::operator()() {

@@ -201,5 +201,52 @@ TEST_F(TestRandom, test_setrv) {
   }
 }
 
+TEST_F(TestRandom, test_real_rv_from_string) {
+  const size_t a = 0;
+  const size_t b = 0;
+  const size_t c = 0;
+
+  const auto myConstant     = RealRvInterface::fromString("42.0", a, b, c);
+  const auto myConstantSpec = dynamic_cast<const ConstantRv*>(myConstant.get());
+  ASSERT_TRUE(myConstantSpec);
+  ASSERT_EQ(42.0, myConstantSpec->theValue);
+
+  const auto myUniform     = RealRvInterface::fromString("U(1.0,3.0)", a, b, c);
+  const auto myUniformSpec = dynamic_cast<const UniformRv*>(myUniform.get());
+  ASSERT_TRUE(myUniformSpec);
+  ASSERT_EQ(1.0, myUniformSpec->theRv.a());
+  ASSERT_EQ(3.0, myUniformSpec->theRv.b());
+
+  const auto myExponential = RealRvInterface::fromString("Exp(2.0)", a, b, c);
+  const auto myExponentialSpec =
+      dynamic_cast<const ExponentialRv*>(myExponential.get());
+  ASSERT_TRUE(myExponentialSpec);
+  ASSERT_EQ(2.0, myExponentialSpec->theRv.lambda());
+
+  EXPECT_THROW(RealRvInterface::fromString("", a, b, c), std::runtime_error);
+  EXPECT_THROW(RealRvInterface::fromString("a", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("u[1,2]", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("U(1,)", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("U(,)", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("U(,)", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("U()", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("Exp()", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("Exp(,)", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("Exp(,)", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("Exp(a)", a, b, c),
+               std::invalid_argument);
+  EXPECT_THROW(RealRvInterface::fromString("Exp(1,2)", a, b, c),
+               std::invalid_argument);
+}
+
 } // namespace support
 } // namespace uiiit
