@@ -163,6 +163,32 @@ class PoissonRv : public GenericRv
   std::poisson_distribution<size_t> theRv;
 };
 
+//! A r.v. producing a given known sequence of values, with wrap around.
+template <class CONTAINER>
+class DeterministicRv : public support::GenericRv,
+                        public support::RealRvInterface
+{
+ public:
+  explicit DeterministicRv(const CONTAINER& aValues)
+      : GenericRv(0, 0, 0)
+      , theValues(aValues)
+      , theIt(theValues.begin()) {
+    assert(theIt != theValues.end());
+  }
+
+  double operator()() override {
+    const auto ret = static_cast<double>(*theIt);
+    if (++theIt == theValues.end()) {
+      theIt = theValues.begin();
+    }
+    return ret;
+  }
+
+ private:
+  CONTAINER                          theValues;
+  typename CONTAINER::const_iterator theIt;
+};
+
 /**
  * @brief Pick an element from a container
  *
