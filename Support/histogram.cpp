@@ -49,7 +49,7 @@ Histogram::Histogram(const Real           aLower,
     , theStats(aNumBins)
     , theUnderflow()
     , theOverflow() {
-  assert(aNumBins < std::numeric_limits<ssize_t>::max());
+  assert(aNumBins < static_cast<size_t>(std::numeric_limits<ssize_t>::max()));
   if (aNumBins == 0) {
     throw std::runtime_error("Cannot make a histogram with no bins");
   }
